@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library Management - Sign In / Sign Up</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="container" id="container">
+        <div class="form-container left-panel" id="signInContainer">
+            <div class="form-wrapper">
+                <h2>Sign In</h2>
+                <form id="signInForm">
+                    <label for="signin-email">Email</label>
+                    <input type="email" id="signin-email" placeholder="Enter your email" autocomplete="off" required />
+
+                    <label for="signin-password">Password</label>
+                    <input type="password" id="signin-password" placeholder="********" autocomplete="off" required />
+                    
+                    <div class="forgot-password">
+                        <a href="#" id="forgotPasswordLink">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn">Sign In</button>
+                    <p id="error-message" class="error-text"></p>
+                </form>
+                <p class="toggle-text">
+                    Don't have an account? <button id="signUpBtn" class="link-btn">Sign Up</button>
+                </p>
+            </div>
+        </div>
+
+        <div class="form-container left-panel" id="forgotPasswordContainer" style="display: none">
+            <div class="form-wrapper">
+                <h2>Reset Password</h2>
+                <p class="subtitle">Enter your email to receive a password reset link</p>
+                
+                <form id="forgotPasswordForm">
+                    <label for="reset-email">Email</label>
+                    <input type="email" id="reset-email" placeholder="Enter your email" autocomplete="off" required />
+                    
+                    <button type="submit" class="btn">Send Reset Link</button>
+                </form>
+                
+                <div id="reset-instructions" style="display: none;">
+                    <div class="reset-message">
+                        <p>A password reset link has been sent to <span id="reset-email-display"></span></p>
+                        <p>Please check your email and follow the instructions to reset your password.</p>
+                    </div>
+                    <div class="reset-actions">
+                        <button id="resend-reset-btn" class="btn">Resend Link</button>
+                    </div>
+                </div>
+                
+                <div id="reset-completion" style="display: none;"></div>
+                
+                <p class="toggle-text">
+                    Remember your password? <button id="backToSignInBtn" class="link-btn">Back to Sign In</button>
+                </p>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="content">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTo4_4bT72FksE5KWPAMdN_XRcq1OXr_efQMw&s" alt="Logo" width="150" />
+                <h2>Library Management System</h2>
+            </div>
+        </div>
+
+        <div class="form-container right-panel-active" id="signUpContainer">
+            <div class="form-wrapper1">
+                <h2>Sign Up</h2>
+                <form id="signUpForm">
+                    <label for="fullname">Username</label>
+                    <input type="text" id="fullname" placeholder="Enter your full name" autocomplete="off" required />
+
+                    <label for="signup-email">E-mail</label>
+                    <input type="email" id="signup-email" placeholder="Your e-mail goes here" autocomplete="off" required />
+
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" placeholder="********" autocomplete="off" required />
+
+                    <label>User Type</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="teacher" name="userType" value="Teacher" required />
+                            <label for="teacher">Teacher</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="student" name="userType" value="Student" required />
+                            <label for="student">Student</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn">Sign Up</button>
+                </form>
+
+                <p class="toggle-text">
+                    Already a member? <button id="signInBtn" class="link-btn">Sign In</button>
+                </p>
+
+                <div class="google-btn">
+                    <button id="googleSignUpBtn" class="google-signup-btn">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Icon" />
+                        Sign up with Google
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-container" id="additionalInfoContainer" style="display: none">
+            <div class="form-wrapper1">
+                <h2>Additional Information</h2>
+                <form id="additionalInfoForm">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="successDialog" style="display: none">
+        <div class="dialog-box">
+            <p>✅ Registration successful! Please wait for admin approval.</p>
+            <button id="goToLoginBtn">Go to Login</button>
+        </div>
+    </div>
+
+    <div id="loadingIndicator" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <script type="module" src="db.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
