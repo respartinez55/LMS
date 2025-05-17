@@ -1,0 +1,36 @@
+{
+  "name": "lms",
+  "version": "1.0.0",
+  "main": "lmsbackend/server.js",
+  "scripts": {
+    "start": "node lmsbackend/server.js",
+    "dev": "nodemon lmsbackend/server.js",
+    "frontend": "cd frontend && npm start",
+    "backend": "nodemon lmsbackend/server.js",
+    "both": "concurrently \"npm run frontend\" \"npm run backend\""
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-fileupload": "^1.5.1",
+    "firebase-admin": "^13.2.0",
+    "jwt-decode": "^4.0.0",
+    "multer": "^1.4.5-lts.2",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.14.0",
+    "path": "^0.12.7",
+    "qrcode": "^1.5.4",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0",
+    "nodemon": "^3.1.9"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Library Management System with Firebase Authentication and MySQL Database"
+}
