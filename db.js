@@ -2,8 +2,7 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-  sendEmailVerification
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 
 import {
@@ -13,7 +12,8 @@ import {
   get,
   child,
   update,
-  remove
+  remove,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
 
 import {
@@ -88,21 +88,36 @@ export async function initializeDefaultAccounts() {
   }
 }
 
-export async function registerUser(email, password) {
+export async function registerUser(email, password, userType) {
   try {
+    // Normalize userType to lowercase and check validity
+    if (!userType || typeof userType !== "string") {
+      throw new Error("Please select a valid role.");
+    }
+    userType = userType.trim().toLowerCase();
+    if (userType !== "student" && userType !== "teacher") {
+      throw new Error("Please select a valid role.");
+    }
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    
-    // Send email verification immediately after creating the user
-    await sendEmailVerification(user);
-    
+
+    // No email verification required
+
+    await set(ref(database, 'allUsers/' + user.uid), {
+      email: email,
+      registeredAt: serverTimestamp(),
+      status: 'pending',
+      userType: userType
+    });
+
     return {
       success: true,
       user: {
         uid: user.uid,
-        email: email
-      },
-      verification: true
+        email: email,
+        userType: userType
+      }
     };
   } catch (error) {
     console.error("Registration error:", error);
@@ -118,7 +133,7 @@ export async function saveStudentInfo(uid, firstName, lastName, lrn, grade, sect
     const username = uid.substring(0, 8);
     const user = auth.currentUser;
     const email = user ? user.email : "";
-    
+
     await set(ref(database, 'students/' + uid), {
       username: username,
       email: email,
@@ -129,9 +144,16 @@ export async function saveStudentInfo(uid, firstName, lastName, lrn, grade, sect
       section: section || "",
       role: 'student',
       status: 'pending',
-      emailVerified: false
+      createdAt: serverTimestamp()
     });
-    
+
+    await update(ref(database, 'allUsers/' + uid), {
+      userType: 'student',
+      firstName: firstName || "",
+      lastName: lastName || "",
+      role: 'student'
+    });
+
     return { 
       success: true
     };
@@ -149,7 +171,7 @@ export async function saveTeacherInfo(uid, firstName, lastName, employeeId, depa
     const username = uid.substring(0, 8);
     const user = auth.currentUser;
     const email = user ? user.email : "";
-    
+
     await set(ref(database, 'teachers/' + uid), {
       username: username,
       email: email,
@@ -159,9 +181,16 @@ export async function saveTeacherInfo(uid, firstName, lastName, employeeId, depa
       department: department || "",
       role: 'teacher',
       status: 'pending',
-      emailVerified: false
+      createdAt: serverTimestamp()
     });
-    
+
+    await update(ref(database, 'allUsers/' + uid), {
+      userType: 'teacher',
+      firstName: firstName || "",
+      lastName: lastName || "",
+      role: 'teacher'
+    });
+
     return { 
       success: true
     };
@@ -212,46 +241,27 @@ export async function userLogin(email, password) {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    
-    // First, check if user exists in students collection
+
     const studentSnapshot = await get(ref(database, 'students/' + user.uid));
     if (studentSnapshot.exists()) {
       const userData = studentSnapshot.val();
-      
-      // Update the emailVerified status if necessary
-      if (user.emailVerified !== userData.emailVerified) {
-        await update(ref(database, 'students/' + user.uid), {
-          emailVerified: user.emailVerified
-        });
-      }
-      
-      // Check account status after verification check
+
       if (userData.status === 'blocked') {
         return {
           success: false,
           error: "Your account has been blocked. Please contact admin for assistance."
         };
       }
-      
+
       if (userData.status === 'pending') {
         return {
           success: false,
           error: "Your account is pending approval. Please wait for admin approval before logging in."
         };
       }
-      
-      // Email verification check (only if account is approved)
-      if (!user.emailVerified) {
-        // Send a new verification email
-        await sendEmailVerification(user);
-        
-        return {
-          success: false,
-          error: "Please verify your email address. A new verification email has been sent.",
-          emailVerification: true
-        };
-      }
-      
+
+      // No email verification required
+
       return {
         success: true,
         user: {
@@ -261,52 +271,32 @@ export async function userLogin(email, password) {
           firstName: userData.firstName || "",
           lastName: userData.lastName || "",
           role: 'student',
-          status: userData.status,
-          emailVerified: user.emailVerified
+          status: userData.status
         },
         redirectUrl: "student-dashboard.html"
       };
     }
-    
-    // If not found in students, check teachers collection
+
     const teacherSnapshot = await get(ref(database, 'teachers/' + user.uid));
     if (teacherSnapshot.exists()) {
       const userData = teacherSnapshot.val();
-      
-      // Update the emailVerified status if necessary
-      if (user.emailVerified !== userData.emailVerified) {
-        await update(ref(database, 'teachers/' + user.uid), {
-          emailVerified: user.emailVerified
-        });
-      }
-      
-      // Check account status after verification check
+
       if (userData.status === 'blocked') {
         return {
           success: false,
           error: "Your account has been blocked. Please contact admin for assistance."
         };
       }
-      
+
       if (userData.status === 'pending') {
         return {
           success: false,
           error: "Your account is pending approval. Please wait for admin approval before logging in."
         };
       }
-      
-      // Email verification check (only if account is approved)
-      if (!user.emailVerified) {
-        // Send a new verification email
-        await sendEmailVerification(user);
-        
-        return {
-          success: false,
-          error: "Please verify your email address. A new verification email has been sent.",
-          emailVerification: true
-        };
-      }
-      
+
+      // No email verification required
+
       return {
         success: true,
         user: {
@@ -316,14 +306,12 @@ export async function userLogin(email, password) {
           firstName: userData.firstName || "",
           lastName: userData.lastName || "",
           role: 'teacher',
-          status: userData.status,
-          emailVerified: user.emailVerified
+          status: userData.status
         },
         redirectUrl: "teacher-dashboard.html"
       };
     }
-    
-    // If user is authenticated but not found in database collections
+
     return {
       success: false,
       error: "User account not found. Please complete registration."
@@ -337,54 +325,7 @@ export async function userLogin(email, password) {
   }
 }
 
-export async function checkAndUpdateEmailVerificationStatus(uid, userType) {
-  try {
-    const user = auth.currentUser;
-    if (!user || user.uid !== uid) {
-      return { success: false, error: "User not authenticated" };
-    }
-    
-    const path = userType === 'student' ? 'students/' : 'teachers/';
-    const userRef = ref(database, path + uid);
-    
-    await update(userRef, {
-      emailVerified: user.emailVerified
-    });
-    
-    return { 
-      success: true,
-      emailVerified: user.emailVerified
-    };
-  } catch (error) {
-    console.error("Error updating email verification status:", error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-export async function resendVerificationEmail() {
-  try {
-    const user = auth.currentUser;
-    if (!user) {
-      return { success: false, error: "No user is signed in" };
-    }
-    
-    await sendEmailVerification(user);
-    
-    return {
-      success: true,
-      message: "Verification email sent"
-    };
-  } catch (error) {
-    console.error("Error sending verification email:", error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
+// The following functions are now just for admin/utility, not for email verification
 
 export async function checkUserRole(uid) {
   try {
@@ -392,12 +333,12 @@ export async function checkUserRole(uid) {
     if (studentSnapshot.exists()) {
       return studentSnapshot.val().role || 'student';
     }
-    
+
     const teacherSnapshot = await get(ref(database, 'teachers/' + uid));
     if (teacherSnapshot.exists()) {
       return teacherSnapshot.val().role || 'teacher';
     }
-    
+
     return null;
   } catch (error) {
     console.error("Error checking user role:", error);
@@ -409,7 +350,7 @@ export async function getUserDataForAdmin(uid, userType) {
   try {
     const path = userType === 'student' ? 'students/' : 'teachers/';
     const snapshot = await get(ref(database, path + uid));
-    
+
     if (snapshot.exists()) {
       return snapshot.val();
     }
@@ -424,21 +365,28 @@ export async function getAllUsers() {
   try {
     const students = {};
     const teachers = {};
-    
+    const allUsers = {};
+
+    const allUsersSnapshot = await get(ref(database, 'allUsers'));
+    if (allUsersSnapshot.exists()) {
+      Object.assign(allUsers, allUsersSnapshot.val());
+    }
+
     const studentsSnapshot = await get(ref(database, 'students'));
     if (studentsSnapshot.exists()) {
       Object.assign(students, studentsSnapshot.val());
     }
-    
+
     const teachersSnapshot = await get(ref(database, 'teachers'));
     if (teachersSnapshot.exists()) {
       Object.assign(teachers, teachersSnapshot.val());
     }
-    
+
     return {
       success: true,
       students,
-      teachers
+      teachers,
+      allUsers
     };
   } catch (error) {
     console.error("Error getting all users:", error);
@@ -453,11 +401,15 @@ export async function updateUserStatus(uid, userType, status) {
   try {
     const path = userType === 'student' ? 'students/' : 'teachers/';
     const userRef = ref(database, path + uid);
-    
+
     await update(userRef, {
       status: status
     });
-    
+
+    await update(ref(database, 'allUsers/' + uid), {
+      status: status
+    });
+
     return { success: true };
   } catch (error) {
     console.error("Error updating user status:", error);
@@ -471,14 +423,14 @@ export async function updateUserStatus(uid, userType, status) {
 export async function deleteAccount(uid) {
   try {
     let deleted = false;
-    
+
     const studentRef = ref(database, 'students/' + uid);
     const studentSnapshot = await get(studentRef);
     if (studentSnapshot.exists()) {
       await remove(studentRef);
       deleted = true;
     }
-    
+
     if (!deleted) {
       const teacherRef = ref(database, 'teachers/' + uid);
       const teacherSnapshot = await get(teacherRef);
@@ -487,7 +439,10 @@ export async function deleteAccount(uid) {
         deleted = true;
       }
     }
-    
+
+    const allUsersRef = ref(database, 'allUsers/' + uid);
+    await remove(allUsersRef);
+
     return { 
       success: deleted,
       error: deleted ? null : "User not found"

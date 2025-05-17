@@ -31,7 +31,49 @@
         <!-- Dashboard Section -->
         <section id="dashboard" class="content-section">
             <h2>Dashboard</h2>
+            
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards">
+                <div class="stat-card users">
+                    <div class="card-header">
+                        <h3>Total Users</h3>
+                        <div class="icon"><i class="fas fa-users"></i></div>
+                    </div>
+                    <div class="card-value" id="total-users">0</div>
+                    <div class="card-trend"><i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month</div>
+                </div>
+                
+                <div class="stat-card students">
+                    <div class="card-header">
+                        <h3>Students</h3>
+                        <div class="icon"><i class="fas fa-user-graduate"></i></div>
+                    </div>
+                    <div class="card-value" id="total-students">0</div>
+                    <div class="card-trend"><i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month</div>
+                </div>
+                
+                <div class="stat-card teachers">
+                    <div class="card-header">
+                        <h3>Teachers</h3>
+                        <div class="icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                    </div>
+                    <div class="card-value" id="total-teachers">0</div>
+                    <div class="card-trend"><i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month</div>
+                </div>
+                
+                <div class="stat-card pending">
+                    <div class="card-header">
+                        <h3>Pending Approvals</h3>
+                        <div class="icon"><i class="fas fa-clock"></i></div>
+                    </div>
+                    <div class="card-value" id="pending-users">0</div>
+                    <div class="card-trend"><i class="fas fa-arrow-down"></i> <span class="down">0%</span> from last month</div>
+                </div>
+            </div>
+            
+            <!-- Students Table -->
             <div class="table-container">
+                <h3>Students</h3>
                 <table>
                     <thead>
                         <tr>
@@ -43,7 +85,24 @@
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody id="dashboardTable"></tbody>
+                    <tbody id="studentsTable"></tbody>
+                </table>
+            </div>
+
+            <!-- Teachers Table -->
+            <div class="table-container">
+                <h3>Teachers</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Employee ID</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teachersTable"></tbody>
                 </table>
             </div>
         </section>
@@ -51,7 +110,10 @@
         <!-- Approve Users Section -->
         <section id="approve" class="content-section" style="display: none;">
             <h2>Approve Users</h2>
+            
+            <!-- Students Pending Approval -->
             <div class="table-container">
+                <h3>Students Pending Approval</h3>
                 <table>
                     <thead>
                         <tr>
@@ -63,7 +125,24 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="pendingTable"></tbody>
+                    <tbody id="pendingStudentsTable"></tbody>
+                </table>
+            </div>
+            
+            <!-- Teachers Pending Approval -->
+            <div class="table-container">
+                <h3>Teachers Pending Approval</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Employee ID</th>
+                            <th>Department</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingTeachersTable"></tbody>
                 </table>
             </div>
         </section>
@@ -73,7 +152,7 @@
             <div class="section-header">
                 <h2>Manage Users</h2>
                 
-                <!-- Search functionality - removed filter box -->
+                <!-- Search functionality -->
                 <div class="search-container">
                     <div class="search-box">
                         <i class="fas fa-search search-icon"></i>
@@ -85,7 +164,25 @@
                 </div>
             </div>
             
-            <div class="table-container">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <select id="userTypeFilter" class="form-control">
+                    <option value="">All User Types</option>
+                    <option value="Student">Students</option>
+                    <option value="Teacher">Teachers</option>
+                </select>
+                
+                <select id="statusFilter" class="form-control">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Blocked">Blocked</option>
+                </select>
+            </div>
+            
+            <!-- Students Table -->
+            <div class="table-container" id="manageStudentsContainer">
+                <h3>Students</h3>
                 <table>
                     <thead>
                         <tr>
@@ -94,10 +191,29 @@
                             <th>LRN</th>
                             <th>Grade</th>
                             <th>Section</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="manageTable"></tbody>
+                    <tbody id="manageStudentsTable"></tbody>
+                </table>
+            </div>
+            
+            <!-- Teachers Table -->
+            <div class="table-container" id="manageTeachersContainer">
+                <h3>Teachers</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Employee ID</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="manageTeachersTable"></tbody>
                 </table>
             </div>
         </section>
@@ -124,18 +240,51 @@
                         <label for="editEmail">Email</label>
                         <input type="email" id="editEmail" class="form-control" required>
                     </div>
-                    <div class="form-group">
-                        <label for="editLRN">LRN</label>
-                        <input type="text" id="editLRN" class="form-control">
+                    
+                    <!-- Conditional Fields based on User Type -->
+                    <div id="studentFields">
+                        <div class="form-group">
+                            <label for="editLRN">LRN</label>
+                            <input type="text" id="editLRN" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="editGrade">Grade</label>
+                            <input type="text" id="editGrade" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="editSection">Section</label>
+                            <input type="text" id="editSection" class="form-control">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="editGrade">Grade</label>
-                        <input type="text" id="editGrade" class="form-control">
+                    
+                    <div id="teacherFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="editEmployeeID">Employee ID</label>
+                            <input type="text" id="editEmployeeID" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDepartment">Department</label>
+                            <input type="text" id="editDepartment" class="form-control">
+                        </div>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="editSection">Section</label>
-                        <input type="text" id="editSection" class="form-control">
+                        <label for="editUserType">User Type</label>
+                        <select id="editUserType" class="form-control">
+                            <option value="Student">Student</option>
+                            <option value="Teacher">Teacher</option>
+                        </select>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="editStatus">Status</label>
+                        <select id="editStatus" class="form-control">
+                            <option value="Active">Active</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Blocked">Blocked</option>
+                        </select>
+                    </div>
+                    
                     <div class="modal-footer">
                         <button type="button" id="cancelBtn" class="modal-btn cancel-btn">Cancel</button>
                         <button type="submit" class="modal-btn save-btn">Save Changes</button>
@@ -145,6 +294,9 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js"></script>
+    <script type="module" src="admin/admin.js"></script>
+    <script type="module" src="admin/approve.js"></script>
+    <script type="module" src="admin/manage.js"></script>
+
 </body>
 </html>
