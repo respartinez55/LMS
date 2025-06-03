@@ -13,6 +13,11 @@ import {
   initializeApp
 } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
 
+// Import separated modules
+import { displayBookChoices, setBookChoiceContainer, setSelectBookCallback } from './addbookchoices.js';
+// Import modal functions
+import { fillReceiptData, showReceiptModal, createQRCode, setupReceiptModalEvents } from './ereceiptmodal.js';
+
 const firebaseConfig = {
   apiKey: "AIzaSyAzwZfY3ypX_Dmh7EjaBsg1jjbDppnMTvs",
   authDomain: "lmsystem-c57c1.firebaseapp.com",
@@ -29,18 +34,14 @@ const database = getDatabase(app);
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
-const borrowForm = document.querySelector('#borrow-page form');
-const bookIdInput = document.querySelector('#borrow-page form #bookId');
-const bookTitleInput = document.querySelector('#borrow-page form #bookTitle');
-const borrowDateInput = document.querySelector('#borrow-page form #borrowDate');
-const returnDateInput = document.querySelector('#borrow-page form #returnDate');
-const borrowButton = document.querySelector('#borrow-page form #borrowBtn');
+// Fixed selectors to match HTML structure
+const borrowForm = document.querySelector('#borrowForm');
+const bookIdInput = document.querySelector('#bookId');
+const bookTitleInput = document.querySelector('#bookTitle');
+const borrowDateInput = document.querySelector('#borrowDate');
+const returnDateInput = document.querySelector('#returnDate');
+const borrowButton = document.querySelector('#borrowBtn');
 const recentlyBorrowedTable = document.querySelector('#borrow-page .table tbody');
-
-const modal = document.querySelector('#receiptModal');
-const closeModal = document.querySelector('.close-modal');
-const downloadReceiptBtn = document.querySelector('#downloadReceipt');
-const printReceiptBtn = document.querySelector('#printReceipt');
 
 const bookChoiceContainer = document.createElement('div');
 bookChoiceContainer.className = 'book-choices-container';
@@ -49,10 +50,22 @@ if (bookIdInput && bookIdInput.parentNode) {
   bookIdInput.parentNode.insertBefore(bookChoiceContainer, bookIdInput.nextSibling);
 }
 
+// Connect to addbookchoices.js
+setBookChoiceContainer(bookChoiceContainer);
+setSelectBookCallback(selectBookFromChoices);
+
+// Connect to ereceiptmodal.js
+setupReceiptModalEvents();
+
 let currentUser = null;
 let selectedBook = null;
 let debounceTimer = null;
 let pendingBorrowData = null;
+
+// Prevent form submission from refreshing the page
+if (borrowForm) {
+  borrowForm.addEventListener('submit', (e) => e.preventDefault());
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   initializePage();
@@ -65,36 +78,86 @@ function initializePage() {
     if (user) {
       getUserData(user.uid)
         .then(userData => {
+          if (!userData) {
+            showNotification('User data not found. Please complete registration.', 'error');
+            window.location.href = 'index.html';
+            return;
+          }
+
+          // Check if user account is approved
+          if (userData.status === 'pending') {
+            showNotification('Your account is pending approval. Please wait for admin approval.', 'error');
+            auth.signOut();
+            window.location.href = 'index.html';
+            return;
+          }
+
+          if (userData.status === 'blocked') {
+            showNotification('Your account has been blocked. Please contact admin.', 'error');
+            auth.signOut();
+            window.location.href = 'index.html';
+            return;
+          }
+
           currentUser = {
             uid: user.uid,
             ...userData
           };
-          document.getElementById('username').textContent = userData.firstName 
+
+          // Update display name based on user data structure
+          const displayName = userData.firstName && userData.lastName 
             ? `${userData.firstName} ${userData.lastName}`
-            : userData.username;
+            : userData.username || user.email;
+
+          const usernameElement = document.getElementById('username');
+          const borrowerNameElement = document.getElementById('borrowerName');
           
-          document.getElementById('borrowerName').textContent = userData.firstName 
-            ? `${userData.firstName} ${userData.lastName}`
-            : userData.username;
+          if (usernameElement) {
+            usernameElement.textContent = displayName;
+          }
+          if (borrowerNameElement) {
+            borrowerNameElement.textContent = displayName;
+          }
           
           loadBorrowedBooks();
         })
         .catch(error => {
           console.error('Error getting user data:', error);
           showNotification('Error loading user data', 'error');
+          window.location.href = 'index.html';
         });
     } else {
-      window.location.href = 'login.html';
+      window.location.href = 'index.html';
     }
   });
 }
 
 async function getUserData(uid) {
   try {
-    const userSnapshot = await get(ref(database, 'users/' + uid));
-    if (userSnapshot.exists()) {
-      return userSnapshot.val();
+    // Check if user is a student
+    const studentSnapshot = await get(ref(database, 'students/' + uid));
+    if (studentSnapshot.exists()) {
+      return {
+        ...studentSnapshot.val(),
+        role: 'student'
+      };
     }
+
+    // Check if user is a teacher
+    const teacherSnapshot = await get(ref(database, 'teachers/' + uid));
+    if (teacherSnapshot.exists()) {
+      return {
+        ...teacherSnapshot.val(),
+        role: 'teacher'
+      };
+    }
+
+    // If not found in specific collections, check allUsers
+    const allUsersSnapshot = await get(ref(database, 'allUsers/' + uid));
+    if (allUsersSnapshot.exists()) {
+      return allUsersSnapshot.val();
+    }
+
     throw new Error('User data not found');
   } catch (error) {
     console.error('Error fetching user data:', error);
@@ -103,12 +166,14 @@ async function getUserData(uid) {
 }
 
 function setDefaultDates() {
-  const today = new Date();
-  const twoWeeksLater = new Date();
-  twoWeeksLater.setDate(today.getDate() + 14);
-  
-  borrowDateInput.value = formatDateForInput(today);
-  returnDateInput.value = formatDateForInput(twoWeeksLater);
+  if (borrowDateInput && returnDateInput) {
+    const today = new Date();
+    const twoWeeksLater = new Date();
+    twoWeeksLater.setDate(today.getDate() + 14);
+    
+    borrowDateInput.value = formatDateForInput(today);
+    returnDateInput.value = formatDateForInput(twoWeeksLater);
+  }
 }
 
 function formatDateForInput(date) {
@@ -116,33 +181,45 @@ function formatDateForInput(date) {
 }
 
 function setupEventListeners() {
-  bookIdInput.addEventListener('input', debounceSearch);
-  bookTitleInput.addEventListener('input', debounceSearch);
+  // Check if elements exist before adding event listeners
+  if (bookIdInput) {
+    bookIdInput.addEventListener('input', debounceSearch);
+  } else {
+    console.warn('bookIdInput element not found');
+  }
   
-  borrowButton.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await prepareBorrow();
-  });
+  if (bookTitleInput) {
+    bookTitleInput.addEventListener('input', debounceSearch);
+  } else {
+    console.warn('bookTitleInput element not found');
+  }
   
-  closeModal.addEventListener('click', () => {
-    modal.style.display = 'none';
-    pendingBorrowData = null;
-  });
-  
-  window.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.style.display = 'none';
-      pendingBorrowData = null;
+  if (borrowButton) {
+    borrowButton.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await prepareBorrow();
+    });
+  } else {
+    console.warn('borrowButton element not found');
+  }
+
+  // Listen for confirm borrow event from the modal
+  document.addEventListener('confirm-borrow', async (e) => {
+    // Always set status to Pending and assign qr_code from event.detail
+    if (pendingBorrowData) {
+      pendingBorrowData.status = 'Pending';
+      if (e && e.detail && e.detail.qr_code) {
+        pendingBorrowData.qr_code = e.detail.qr_code;
+      }
     }
+    await confirmBorrow();
   });
-  
-  if (downloadReceiptBtn) {
-    downloadReceiptBtn.addEventListener('click', confirmBorrow);
-  }
-  
-  if (printReceiptBtn) {
-    printReceiptBtn.addEventListener('click', downloadReceiptAsPDF);
-  }
+
+  // Listen for modal close event to reset form if needed
+  document.addEventListener('modal-closed', () => {
+    // Optional: Reset form when modal is closed without confirming
+    // resetForm();
+  });
 }
 
 function debounceSearch(e) {
@@ -169,7 +246,9 @@ async function searchBookById(bookId) {
     bookChoiceContainer.innerHTML = '';
     selectedBook = null;
     
-    bookTitleInput.placeholder = "Searching...";
+    if (bookTitleInput) {
+      bookTitleInput.placeholder = "Searching...";
+    }
     
     let response = await fetch(`${API_BASE_URL}/books/search?id=${bookId}`);
     let data = await response.json();
@@ -179,12 +258,16 @@ async function searchBookById(bookId) {
       data = await response.json();
     }
     
-    bookTitleInput.placeholder = "Enter Book Title";
+    if (bookTitleInput) {
+      bookTitleInput.placeholder = "Enter Book Title";
+    }
     
     if (data.success && data.books.length > 0) {
       if (data.books.length === 1) {
         const book = data.books[0];
-        bookTitleInput.value = book.title;
+        if (bookTitleInput) {
+          bookTitleInput.value = book.title;
+        }
         selectedBook = book;
         showNotification(`Book "${book.title}" found`, 'success');
         return book;
@@ -198,26 +281,34 @@ async function searchBookById(bookId) {
         const directData = await directResponse.json();
         
         if (directData.success && directData.book) {
-          bookTitleInput.value = directData.book.title;
+          if (bookTitleInput) {
+            bookTitleInput.value = directData.book.title;
+          }
           selectedBook = directData.book;
           showNotification(`Book "${directData.book.title}" found`, 'success');
           return directData.book;
         } else {
           showNotification('No books found with this ID/ISBN', 'error');
-          bookTitleInput.value = '';
+          if (bookTitleInput) {
+            bookTitleInput.value = '';
+          }
           return null;
         }
       } catch (directError) {
         console.error('Error in direct book fetch:', directError);
         showNotification('No books found with this ID/ISBN', 'error');
-        bookTitleInput.value = '';
+        if (bookTitleInput) {
+          bookTitleInput.value = '';
+        }
         return null;
       }
     }
   } catch (error) {
     console.error('Error searching for book by ID:', error);
     showNotification('Error searching for book', 'error');
-    bookTitleInput.placeholder = "Enter Book Title";
+    if (bookTitleInput) {
+      bookTitleInput.placeholder = "Enter Book Title";
+    }
     return null;
   }
 }
@@ -227,17 +318,23 @@ async function searchBookByTitle(title) {
     bookChoiceContainer.innerHTML = '';
     selectedBook = null;
     
-    bookIdInput.placeholder = "Searching...";
+    if (bookIdInput) {
+      bookIdInput.placeholder = "Searching...";
+    }
     
     const response = await fetch(`${API_BASE_URL}/books/search?title=${encodeURIComponent(title)}`);
     const data = await response.json();
     
-    bookIdInput.placeholder = "Enter Book ID or ISBN";
+    if (bookIdInput) {
+      bookIdInput.placeholder = "Enter Book ID or ISBN";
+    }
     
     if (data.success && data.books.length > 0) {
       if (data.books.length === 1) {
         const book = data.books[0];
-        bookIdInput.value = book.id;
+        if (bookIdInput) {
+          bookIdInput.value = book.id;
+        }
         selectedBook = book;
         showNotification(`Book "${book.title}" found`, 'success');
         return book;
@@ -247,217 +344,32 @@ async function searchBookByTitle(title) {
       }
     } else {
       showNotification('No books found with this title', 'error');
-      bookIdInput.value = '';
+      if (bookIdInput) {
+        bookIdInput.value = '';
+      }
       return null;
     }
   } catch (error) {
     console.error('Error searching for book by title:', error);
     showNotification('Error searching for book', 'error');
-    bookIdInput.placeholder = "Enter Book ID or ISBN";
+    if (bookIdInput) {
+      bookIdInput.placeholder = "Enter Book ID or ISBN";
+    }
     return null;
   }
 }
 
-function displayBookChoices(books) {
-  bookChoiceContainer.innerHTML = '';
-  
-  const heading = document.createElement('h4');
-  heading.className = 'book-choices-heading';
-  heading.textContent = `Found ${books.length} matching books:`;
-  bookChoiceContainer.appendChild(heading);
-  
-  const choiceList = document.createElement('ul');
-  choiceList.className = 'book-choices-list';
-  
-  books.forEach(book => {
-    const choiceItem = document.createElement('li');
-    choiceItem.className = 'book-choice-item';
-    
-    const coverImage = book.cover_image || '/images/default-book-cover.jpg';
-    
-    choiceItem.innerHTML = `
-      <div class="book-choice-info">
-        <img src="${coverImage}" alt="${book.title}" class="book-choice-cover">
-        <div class="book-choice-details">
-          <span class="book-choice-title">${book.title}</span>
-          <span class="book-choice-author">by ${book.author}</span>
-          <span class="book-choice-id">ID: ${book.id} | ISBN: ${book.isbn || 'N/A'}</span>
-          <span class="book-choice-status ${book.status.toLowerCase() === 'available' ? 'available' : 'unavailable'}">
-            ${book.status}
-          </span>
-        </div>
-      </div>
-      <button class="book-choice-select" data-book-id="${book.id}" 
-        ${book.status.toLowerCase() !== 'available' ? 'disabled' : ''}>
-        Select
-      </button>
-    `;
-    
-    choiceList.appendChild(choiceItem);
-    
-    const selectBtn = choiceItem.querySelector('.book-choice-select');
-    selectBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      selectBookFromChoices(book);
-    });
-    
-    choiceItem.addEventListener('click', (e) => {
-      if (!e.target.closest('.book-choice-select')) {
-        if (book.status.toLowerCase() === 'available') {
-          selectBookFromChoices(book);
-        } else {
-          showNotification(`Book "${book.title}" is not available for borrowing`, 'error');
-        }
-      }
-    });
-  });
-  
-  bookChoiceContainer.appendChild(choiceList);
-  
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'book-choices-close';
-  closeBtn.textContent = 'Close';
-  closeBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    bookChoiceContainer.innerHTML = '';
-  });
-  
-  bookChoiceContainer.appendChild(closeBtn);
-  
-  addBookChoicesStyles();
-}
-
 function selectBookFromChoices(book) {
   selectedBook = book;
-  bookIdInput.value = book.id;
-  bookTitleInput.value = book.title;
+  if (bookIdInput) {
+    bookIdInput.value = book.id;
+  }
+  if (bookTitleInput) {
+    bookTitleInput.value = book.title;
+  }
   bookChoiceContainer.innerHTML = '';
   
   showNotification(`Book "${book.title}" selected`, 'success');
-}
-
-function addBookChoicesStyles() {
-  if (!document.getElementById('book-choices-styles')) {
-    const styleElement = document.createElement('style');
-    styleElement.id = 'book-choices-styles';
-    styleElement.textContent = `
-      .book-choices-container {
-        margin: 10px 0;
-        padding: 0;
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        z-index: 1000;
-        position: relative;
-      }
-      .book-choices-heading {
-        padding: 10px;
-        margin: 0;
-        background-color: #eee;
-        border-bottom: 1px solid #ddd;
-        font-size: 16px;
-        color: #333;
-      }
-      .book-choices-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      .book-choice-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 10px;
-        border-bottom: 1px solid #eee;
-        transition: background-color 0.2s;
-        cursor: pointer;
-      }
-      .book-choice-item:hover {
-        background-color: #f0f0f0;
-      }
-      .book-choice-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex: 1;
-      }
-      .book-choice-cover {
-        width: 60px;
-        height: 80px;
-        object-fit: cover;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border-radius: 3px;
-      }
-      .book-choice-details {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .book-choice-title {
-        font-weight: bold;
-        font-size: 15px;
-      }
-      .book-choice-author {
-        font-style: italic;
-        color: #666;
-      }
-      .book-choice-id {
-        font-size: 12px;
-        color: #777;
-      }
-      .book-choice-status {
-        font-size: 12px;
-        font-weight: bold;
-        padding: 2px 5px;
-        border-radius: 3px;
-        display: inline-block;
-        margin-top: 3px;
-      }
-      .book-choice-status.available {
-        background-color: #d4edda;
-        color: #155724;
-      }
-      .book-choice-status.unavailable {
-        background-color: #f8d7da;
-        color: #721c24;
-      }
-      .book-choice-select {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 3px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        min-width: 70px;
-      }
-      .book-choice-select:hover {
-        background-color: #0069d9;
-      }
-      .book-choice-select:disabled {
-        background-color: #6c757d;
-        cursor: not-allowed;
-      }
-      .book-choices-close {
-        display: block;
-        width: 100%;
-        padding: 8px;
-        background-color: #f8f9fa;
-        border: none;
-        border-top: 1px solid #ddd;
-        cursor: pointer;
-        font-weight: bold;
-        color: #495057;
-      }
-      .book-choices-close:hover {
-        background-color: #e2e6ea;
-      }
-    `;
-    document.head.appendChild(styleElement);
-  }
 }
 
 async function prepareBorrow() {
@@ -466,10 +378,10 @@ async function prepareBorrow() {
     return;
   }
   
-  const bookId = bookIdInput.value.trim();
-  const bookTitle = bookTitleInput.value.trim();
-  const borrowDate = borrowDateInput.value;
-  const returnDate = returnDateInput.value;
+  const bookId = bookIdInput ? bookIdInput.value.trim() : '';
+  const bookTitle = bookTitleInput ? bookTitleInput.value.trim() : '';
+  const borrowDate = borrowDateInput ? borrowDateInput.value : '';
+  const returnDate = returnDateInput ? returnDateInput.value : '';
   
   if (!bookId || !bookTitle) {
     showNotification('Please enter book details', 'error');
@@ -482,7 +394,7 @@ async function prepareBorrow() {
     if (selectedBook) {
       book = selectedBook;
       
-      if (book.status.toLowerCase() !== 'available') {
+      if (book.status && book.status.toLowerCase() !== 'available') {
         showNotification('Book is not available for borrowing', 'error');
         return;
       }
@@ -502,47 +414,53 @@ async function prepareBorrow() {
       
       book = bookData.book;
       
-      if (book.status.toLowerCase() !== 'available') {
+      if (book.status && book.status.toLowerCase() !== 'available') {
         showNotification('Book is not available for borrowing', 'error');
         return;
       }
     }
-    
+
+    // Generate a transaction ID with the updated format matching the second code
     const transactionId = generateTransactionId();
-    const qrCodeData = `LMSBORROWID:${transactionId}`;
-    const qrCodeUrl = await generateQRCodeURL(qrCodeData);
-    const coverImagePath = book.cover_image || '/images/default-book-cover.jpg';
-    
+    const coverImage = book.cover_image || '/images/default-book-cover.jpg';
+    const userName = currentUser.firstName && currentUser.lastName
+      ? `${currentUser.firstName} ${currentUser.lastName}`
+      : currentUser.username || currentUser.email;
+
+    // Prepare borrow data but don't save to database yet
     pendingBorrowData = {
       bookId: book.id,
       userId: currentUser.uid,
       userEmail: currentUser.email,
-      userName: currentUser.firstName 
-        ? `${currentUser.firstName} ${currentUser.lastName}`
-        : currentUser.username,
+      userName: userName,
+      userRole: currentUser.role || 'student',
       borrowDate: borrowDate,
       dueDate: returnDate,
       returnDate: null,
-      status: 'Borrowed',
+      status: 'Pending', // Always set as pending
       bookTitle: bookTitle,
       transactionId: transactionId,
-      qr_code: qrCodeUrl,
-      coverImage: coverImagePath
+      coverImage: coverImage,
+      requestDate: new Date().toISOString() // Add request date
+      // qr_code will be added after QR upload
     };
-    
+
+    // Show the e-receipt modal with data
     fillReceiptData({
       transactionId: transactionId,
       bookId: book.id,
       bookTitle: bookTitle,
       borrowDate: borrowDate,
       returnDate: returnDate,
-      coverImage: coverImagePath
+      coverImage: coverImage,
+      userName: userName,
+      userEmail: currentUser.email
     });
-    
+
     createQRCode(transactionId);
-    
+
     showReceiptModal();
-    
+
   } catch (error) {
     console.error('Error preparing to borrow book:', error);
     showNotification('Error preparing to borrow book', 'error');
@@ -554,9 +472,14 @@ async function confirmBorrow() {
     showNotification('Borrowing data not found', 'error');
     return;
   }
-  
+
+  // Always set status to Pending before sending to backend
+  pendingBorrowData.status = 'Pending';
+
   try {
-    const response = await fetch(`${API_BASE_URL}/books/borrow`, {
+    showNotification('Submitting borrow request...', 'info');
+    
+    const response = await fetch(`${API_BASE_URL}/borrow`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -567,152 +490,53 @@ async function confirmBorrow() {
     const data = await response.json();
     
     if (data.success) {
-      showNotification('Book borrowed successfully', 'success');
-      modal.style.display = 'none';
+      showNotification('Borrow request submitted successfully! Waiting for admin approval.', 'success');
+      // Close modal after successful borrow
+      const modal = document.querySelector('#receiptModal');
+      if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+      }
       resetForm();
       loadBorrowedBooks();
+      pendingBorrowData = null;
     } else {
-      showNotification(data.message || 'Failed to borrow book', 'error');
+      showNotification(data.message || 'Failed to submit borrow request', 'error');
     }
   } catch (error) {
-    console.error('Error borrowing book:', error);
-    showNotification('Error borrowing book', 'error');
+    console.error('Error submitting borrow request:', error);
+    showNotification('Error submitting borrow request', 'error');
   }
 }
 
 function generateTransactionId() {
-  const timestamp = new Date().getTime().toString().slice(-6);
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `TR-${timestamp}-${random}`;
-}
-
-function fillReceiptData(data) {
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   
-  document.getElementById('receiptDate').textContent = currentDate;
-  document.getElementById('transactionId').textContent = data.transactionId;
-  document.getElementById('receiptBookId').textContent = data.bookId;
-  document.getElementById('receiptBookTitle').textContent = data.bookTitle;
-  document.getElementById('receiptBorrowDate').textContent = formatDateForDisplay(data.borrowDate);
-  document.getElementById('receiptReturnDate').textContent = formatDateForDisplay(data.returnDate);
-  
-  const receiptBarcode = document.getElementById('receiptBarcode');
-  if (receiptBarcode) {
-    receiptBarcode.textContent = data.transactionId.replace('TR-', '');
-  }
-  
-  const bookCoverElem = document.getElementById('receiptBookCover');
-  if (bookCoverElem) {
-    bookCoverElem.src = data.coverImage;
-    bookCoverElem.alt = data.bookTitle;
-  }
-}
-
-function formatDateForDisplay(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}
-
-async function generateQRCodeURL(data) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/generate-qrcode`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ data }),
-    });
-    
-    if (response.ok) {
-      const result = await response.json();
-      return result.qrCodeUrl;
-    } else {
-      console.error('Failed to generate QR code URL');
-      return null;
-    }
-  } catch (error) {
-    console.error('Error generating QR code URL:', error);
-    return null;
-  }
-}
-
-function createQRCode(transactionId) {
-  const qrContainer = document.querySelector('#qrcode');
-  if (qrContainer) {
-    qrContainer.innerHTML = '';
-    
-    new QRCode(qrContainer, {
-      text: `LMSBORROWID:${transactionId}`,
-      width: 128,
-      height: 128,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  }
-}
-
-function showReceiptModal() {
-  modal.style.display = 'block';
-}
-
-function downloadReceiptAsPDF() {
-  if (typeof html2canvas === 'undefined' || typeof jsPDF === 'undefined') {
-    loadPDFLibraries(() => generatePDF());
-  } else {
-    generatePDF();
-  }
-}
-
-function loadPDFLibraries(callback) {
-  const jspdfScript = document.createElement('script');
-  jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-  
-  const html2canvasScript = document.createElement('script');
-  html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-  
-  jspdfScript.onload = function() {
-    document.head.appendChild(html2canvasScript);
-  };
-  
-  html2canvasScript.onload = callback;
-  
-  document.head.appendChild(jspdfScript);
-}
-
-function generatePDF() {
-  const receiptElement = document.querySelector('.receipt');
-  
-  html2canvas(receiptElement).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height * width) / canvas.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-    pdf.save(`book-receipt-${pendingBorrowData.transactionId}.pdf`);
-  });
+  return `IS-${year}${month}${day}${hours}${minutes}${seconds}${random}`;
 }
 
 async function loadBorrowedBooks() {
   if (!currentUser) return;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/books/borrowed/${currentUser.uid}`);
+    const response = await fetch(`${API_BASE_URL}/borrow/borrowed/${currentUser.uid}`);
     const data = await response.json();
     
     if (data.success) {
-      displayBorrowedBooks(data.borrowedBooks);
+      // Normalize: treat missing status as 'Pending'
+      const normalized = data.borrowedBooks.map(b => ({
+        ...b,
+        status: b.status ? b.status : 'Pending'
+      }));
+      displayBorrowedBooks(normalized);
     } else {
       console.error('Failed to load borrowed books:', data.message);
     }
@@ -722,11 +546,16 @@ async function loadBorrowedBooks() {
 }
 
 function displayBorrowedBooks(books) {
+  if (!recentlyBorrowedTable) {
+    console.warn('Recently borrowed table not found');
+    return;
+  }
+  
   recentlyBorrowedTable.innerHTML = '';
   
   if (!books || books.length === 0) {
     const noDataRow = document.createElement('tr');
-    noDataRow.innerHTML = '<td colspan="3">No books borrowed yet</td>';
+    noDataRow.innerHTML = '<td colspan="4">No books borrowed yet</td>'; // Updated colspan to 4 (removed image column)
     recentlyBorrowedTable.appendChild(noDataRow);
     return;
   }
@@ -734,39 +563,129 @@ function displayBorrowedBooks(books) {
   books.forEach(book => {
     const row = document.createElement('tr');
     
-    const borrowDate = new Date(book.borrowDate).toLocaleDateString();
-    const dueDate = new Date(book.dueDate).toLocaleDateString();
-    const coverImage = book.coverImage || '/images/default-book-cover.jpg';
+    const borrowDate = book.borrowDate ? new Date(book.borrowDate).toLocaleDateString() : '-';
+    const dueDate = book.dueDate ? new Date(book.dueDate).toLocaleDateString() : '-';
+    const author = book.author || book.bookAuthor || '-'; // Handle different author field names
     
+    // Create status pill with dot indicator
+    let statusPill = '';
+    let statusClass = '';
+    
+    switch(book.status && book.status.toLowerCase()) {
+      case 'pending':
+        statusPill = '<span class="status-pill status-pending">Pending</span>';
+        statusClass = 'row-status-pending';
+        break;
+      case 'borrowed':
+        statusPill = '<span class="status-pill status-borrowed">Borrowed</span>';
+        statusClass = 'row-status-borrowed';
+        break;
+      case 'returned':
+        statusPill = '<span class="status-pill status-returned">Returned</span>';
+        statusClass = 'row-status-returned';
+        break;
+      case 'overdue':
+        statusPill = '<span class="status-pill status-overdue">Overdue</span>';
+        statusClass = 'row-status-overdue';
+        break;
+      default:
+        statusPill = '<span class="status-pill status-pending">Pending</span>';
+        statusClass = 'row-status-pending';
+    }
+    
+    row.className = statusClass;
     row.innerHTML = `
-      <td>
-        <div class="borrowed-book-info">
-          <img src="${coverImage}" alt="${book.title}" class="borrowed-book-cover">
-          <span>${book.bookTitle}</span>
-        </div>
-      </td>
+      <td>${book.bookTitle || book.title}</td>
+      <td>${author}</td>
       <td>${borrowDate}</td>
       <td>${dueDate}</td>
+      <td>${statusPill}</td>
     `;
     
     recentlyBorrowedTable.appendChild(row);
   });
   
+  // Add styles if not already added
   if (!document.getElementById('borrowed-books-styles')) {
     const styleElement = document.createElement('style');
     styleElement.id = 'borrowed-books-styles';
     styleElement.textContent = `
-      .borrowed-book-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+      /* Status pill base styling */
+      .status-pill {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
       }
-      .borrowed-book-cover {
-        width: 40px;
-        height: 50px;
-        object-fit: cover;
-        border-radius: 3px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+      /* Status pill dot indicator styling */
+      .status-pill::before {
+        content: '';
+        display: inline-block;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+      }
+
+      /* Pending status pill styling */
+      .status-pending {
+        background-color: rgba(107, 114, 128, 0.1);
+        color: #6b7280;
+      }
+
+      .status-pending::before {
+        background-color: #6b7280;
+      }
+
+      /* Borrowed status pill styling */
+      .status-borrowed {
+        background-color: rgba(251, 146, 60, 0.1);
+        color: #f59e0b;
+      }
+
+      .status-borrowed::before {
+        background-color: #f59e0b;
+      }
+
+      /* Returned status pill styling */
+      .status-returned {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+      }
+
+      .status-returned::before {
+        background-color: #10b981;
+      }
+
+      /* Overdue status pill styling */
+      .status-overdue {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+      }
+
+      .status-overdue::before {
+        background-color: #ef4444;
+      }
+
+      /* Row background colors for different statuses */
+      .row-status-pending {
+        background-color: rgba(107, 114, 128, 0.05);
+      }
+
+      .row-status-overdue {
+        background-color: rgba(239, 68, 68, 0.05);
+      }
+
+      .row-status-borrowed {
+        background-color: rgba(251, 146, 60, 0.05);
+      }
+
+      .row-status-returned {
+        background-color: rgba(16, 185, 129, 0.05);
       }
     `;
     document.head.appendChild(styleElement);
@@ -774,8 +693,12 @@ function displayBorrowedBooks(books) {
 }
 
 function resetForm() {
-  bookIdInput.value = '';
-  bookTitleInput.value = '';
+  if (bookIdInput) {
+    bookIdInput.value = '';
+  }
+  if (bookTitleInput) {
+    bookTitleInput.value = '';
+  }
   selectedBook = null;
   bookChoiceContainer.innerHTML = '';
   pendingBorrowData = null;
@@ -836,7 +759,9 @@ function showNotification(message, type = 'info') {
   }
 }
 
+// Export functions that might be needed by other modules
 export {
   prepareBorrow,
-  loadBorrowedBooks
+  loadBorrowedBooks,
+  confirmBorrow
 };

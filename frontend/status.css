@@ -1,0 +1,108 @@
+/* Status pill base styling */
+.status-pill {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+/* Status pill dot indicator styling */
+.status-pill::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+/* Available status pill styling - Green */
+.status-available {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+/* Available status pill dot styling */
+.status-available::before {
+  background-color: var(--success);
+}
+
+/* Unavailable status pill styling - Red */
+.status-unavailable {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+/* Unavailable status pill dot styling */
+.status-unavailable::before {
+  background-color: var(--danger);
+}
+
+/* Reserved status pill styling - Blue */
+.status-reserved {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--secondary);
+}
+
+/* Reserved status pill dot styling */
+.status-reserved::before {
+  background-color: var(--secondary);
+}
+
+/* Overdue status pill styling - Red */
+.status-overdue {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+/* Overdue status pill dot styling */
+.status-overdue::before {
+  background-color: var(--danger);
+}
+
+/* Borrowed status pill styling - Orange */
+.status-borrowed {
+  background-color: rgba(251, 146, 60, 0.1);
+  color: var(--warning);
+}
+
+/* Borrowed status pill dot styling */
+.status-borrowed::before {
+  background-color: var(--warning);
+}
+
+/* Returned status pill styling - Green */
+.status-returned {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+/* Returned status pill dot styling */
+.status-returned::before {
+  background-color: var(--success);
+}
+
+/* Pending status pill styling - Blue */
+.status-pending {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+}
+
+/* Pending status pill dot styling */
+.status-pending::before {
+  background-color: var(--primary);
+}
+
+/* Info status pill styling - Blue */
+.status-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+}
+
+/* Info status pill dot styling */
+.status-info::before {
+  background-color: var(--primary);
+}

@@ -6,6 +6,7 @@ const usernameElement = document.getElementById('username');
 
 // Initialize Firebase objects
 let auth, database;
+let currentUser = null;
 
 // Check if user is logged in
 document.addEventListener('DOMContentLoaded', () => {
@@ -46,7 +47,7 @@ function initializeApp(firebaseApp, firebaseAuth, firebaseDB) {
   // Check user authentication state
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      // User is signed in
+      // User is signed in, load their role-specific data
       loadUserData(user.uid, ref, get);
     } else {
       // User is signed out, redirect to login
@@ -58,27 +59,123 @@ function initializeApp(firebaseApp, firebaseAuth, firebaseDB) {
   setupEventListeners(signOut);
 }
 
-// Load user data from Firebase
-function loadUserData(uid, ref, get) {
-  const userRef = ref(database, 'users/' + uid);
-  get(userRef).then((snapshot) => {
-    if (snapshot.exists()) {
-      const userData = snapshot.val();
+// Load user data from Firebase based on role
+async function loadUserData(uid, ref, get) {
+  try {
+    // Check if user is a student
+    const studentRef = ref(database, 'students/' + uid);
+    const studentSnapshot = await get(studentRef);
+    
+    if (studentSnapshot.exists()) {
+      const userData = studentSnapshot.val();
+      
+      // Check user status
+      if (userData.status === 'blocked') {
+        alert("Your account has been blocked. Please contact admin for assistance.");
+        auth.signOut();
+        return;
+      }
+      
+      if (userData.status === 'pending') {
+        alert("Your account is pending approval. Please wait for admin approval.");
+        auth.signOut();
+        return;
+      }
+      
+      // Set current user data
+      currentUser = {
+        uid: uid,
+        role: 'student',
+        ...userData
+      };
       
       // Display user's name in sidebar
       const displayName = userData.firstName && userData.lastName 
         ? `${userData.firstName} ${userData.lastName}`
-        : userData.username;
+        : userData.username || 'Student';
       
       usernameElement.textContent = displayName;
-    } else {
-      console.error('User data not found');
-      usernameElement.textContent = 'User';
+      return;
     }
-  }).catch((error) => {
+    
+    // Check if user is a teacher
+    const teacherRef = ref(database, 'teachers/' + uid);
+    const teacherSnapshot = await get(teacherRef);
+    
+    if (teacherSnapshot.exists()) {
+      const userData = teacherSnapshot.val();
+      
+      // Check user status
+      if (userData.status === 'blocked') {
+        alert("Your account has been blocked. Please contact admin for assistance.");
+        auth.signOut();
+        return;
+      }
+      
+      if (userData.status === 'pending') {
+        alert("Your account is pending approval. Please wait for admin approval.");
+        auth.signOut();
+        return;
+      }
+      
+      // Set current user data
+      currentUser = {
+        uid: uid,
+        role: 'teacher',
+        ...userData
+      };
+      
+      // Display user's name in sidebar
+      const displayName = userData.firstName && userData.lastName 
+        ? `${userData.firstName} ${userData.lastName}`
+        : userData.username || 'Teacher';
+      
+      usernameElement.textContent = displayName;
+      return;
+    }
+    
+    // Check static users (admin/librarian)
+    const staticUsersRef = ref(database, 'staticUsers');
+    const staticSnapshot = await get(staticUsersRef);
+    
+    if (staticSnapshot.exists()) {
+      const allRoles = staticSnapshot.val();
+      let foundUser = null;
+      
+      // Search through all roles
+      for (const role in allRoles) {
+        const accounts = allRoles[role];
+        for (const id in accounts) {
+          const account = accounts[id];
+          if (id === uid || account.email === auth.currentUser?.email) {
+            foundUser = {
+              uid: id,
+              role: account.role,
+              ...account
+            };
+            break;
+          }
+        }
+        if (foundUser) break;
+      }
+      
+      if (foundUser) {
+        currentUser = foundUser;
+        usernameElement.textContent = foundUser.username || foundUser.role;
+        return;
+      }
+    }
+    
+    // If no user data found, redirect to complete registration
+    console.error('User data not found in any collection');
+    alert('Please complete your registration.');
+    window.location.href = 'register.html';
+    
+  } catch (error) {
     console.error('Error loading user data:', error);
     usernameElement.textContent = 'User';
-  });
+    alert('Error loading user data. Please try logging in again.');
+  }
 }
 
 // Set up event listeners for sidebar and logout
@@ -109,6 +206,8 @@ function setupEventListeners(signOut) {
     logoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
       signOut(auth).then(() => {
+        // Clear current user data
+        currentUser = null;
         // Sign-out successful, redirect to login page
         window.location.href = 'index.html';
       }).catch((error) => {
@@ -217,38 +316,93 @@ function addBookCardEventListeners() {
   // Issue button click
   document.querySelectorAll('.issue-btn').forEach(button => {
     button.addEventListener('click', (e) => {
+      // Check if user is logged in and has permission
+      if (!currentUser) {
+        alert('Please log in to issue books.');
+        return;
+      }
+      
+      if (currentUser.status === 'pending') {
+        alert('Your account is pending approval. Please wait for admin approval.');
+        return;
+      }
+      
+      if (currentUser.status === 'blocked') {
+        alert('Your account has been blocked. Please contact admin.');
+        return;
+      }
+      
       const bookCard = e.target.closest('.book-card');
       const bookTitle = bookCard.querySelector('.book-title').textContent;
       const bookAuthor = bookCard.querySelector('.book-author').textContent;
       
       // Redirect to issue page and pre-fill form
       document.querySelector('[data-page="issue"]').click();
-      const issueForm = document.querySelector('#issue-page form');
-      issueForm.querySelector('input[placeholder="Enter Book Title"]').value = bookTitle;
+      setTimeout(() => {
+        const issueForm = document.querySelector('#issue-page form');
+        if (issueForm) {
+          const titleInput = issueForm.querySelector('input[placeholder="Enter Book Title"]');
+          if (titleInput) {
+            titleInput.value = bookTitle;
+          }
+        }
+      }, 100);
     });
   });
   
   // Reserve button click
   document.querySelectorAll('.reserve-btn').forEach(button => {
     button.addEventListener('click', (e) => {
+      // Check if user is logged in and has permission
+      if (!currentUser) {
+        alert('Please log in to reserve books.');
+        return;
+      }
+      
+      if (currentUser.status === 'pending') {
+        alert('Your account is pending approval. Please wait for admin approval.');
+        return;
+      }
+      
+      if (currentUser.status === 'blocked') {
+        alert('Your account has been blocked. Please contact admin.');
+        return;
+      }
+      
       const bookCard = e.target.closest('.book-card');
       const bookTitle = bookCard.querySelector('.book-title').textContent;
       
       // Redirect to reserve page
       document.querySelector('[data-page="reserve"]').click();
-      const reserveForm = document.querySelector('#reserve-page form');
-      reserveForm.querySelector('input[placeholder="Enter Book Title"]').value = bookTitle;
+      setTimeout(() => {
+        const reserveForm = document.querySelector('#reserve-page form');
+        if (reserveForm) {
+          const titleInput = reserveForm.querySelector('input[placeholder="Enter Book Title"]');
+          if (titleInput) {
+            titleInput.value = bookTitle;
+          }
+        }
+      }, 100);
     });
   });
   
   // Save button click
   document.querySelectorAll('.save-btn').forEach(button => {
     button.addEventListener('click', (e) => {
+      if (!currentUser) {
+        alert('Please log in to save books.');
+        return;
+      }
+      
       const bookCard = e.target.closest('.book-card');
       const bookTitle = bookCard.querySelector('.book-title').textContent;
       const bookAuthor = bookCard.querySelector('.book-author').textContent;
       
+      // Here you could save to Firebase instead of just showing alert
       alert(`Book "${bookTitle}" by ${bookAuthor} has been saved to your collection.`);
+      
+      // TODO: Implement actual save functionality to Firebase
+      // saveBookToCollection(currentUser.uid, bookCard.dataset.bookId);
     });
   });
   
@@ -433,10 +587,32 @@ function displayBookDetailsModal(book) {
   const issueBtn = modal.querySelector('.issue-modal-btn');
   if (issueBtn) {
     issueBtn.addEventListener('click', () => {
+      if (!currentUser) {
+        alert('Please log in to issue books.');
+        return;
+      }
+      
+      if (currentUser.status === 'pending') {
+        alert('Your account is pending approval. Please wait for admin approval.');
+        return;
+      }
+      
+      if (currentUser.status === 'blocked') {
+        alert('Your account has been blocked. Please contact admin.');
+        return;
+      }
+      
       modal.style.display = 'none';
       document.querySelector('[data-page="issue"]').click();
-      const issueForm = document.querySelector('#issue-page form');
-      issueForm.querySelector('input[placeholder="Enter Book Title"]').value = book.title;
+      setTimeout(() => {
+        const issueForm = document.querySelector('#issue-page form');
+        if (issueForm) {
+          const titleInput = issueForm.querySelector('input[placeholder="Enter Book Title"]');
+          if (titleInput) {
+            titleInput.value = book.title;
+          }
+        }
+      }, 100);
     });
   }
   
@@ -444,10 +620,32 @@ function displayBookDetailsModal(book) {
   const reserveBtn = modal.querySelector('.reserve-modal-btn');
   if (reserveBtn) {
     reserveBtn.addEventListener('click', () => {
+      if (!currentUser) {
+        alert('Please log in to reserve books.');
+        return;
+      }
+      
+      if (currentUser.status === 'pending') {
+        alert('Your account is pending approval. Please wait for admin approval.');
+        return;
+      }
+      
+      if (currentUser.status === 'blocked') {
+        alert('Your account has been blocked. Please contact admin.');
+        return;
+      }
+      
       modal.style.display = 'none';
       document.querySelector('[data-page="reserve"]').click();
-      const reserveForm = document.querySelector('#reserve-page form');
-      reserveForm.querySelector('input[placeholder="Enter Book Title"]').value = book.title;
+      setTimeout(() => {
+        const reserveForm = document.querySelector('#reserve-page form');
+        if (reserveForm) {
+          const titleInput = reserveForm.querySelector('input[placeholder="Enter Book Title"]');
+          if (titleInput) {
+            titleInput.value = book.title;
+          }
+        }
+      }, 100);
     });
   }
   
@@ -455,12 +653,18 @@ function displayBookDetailsModal(book) {
   const saveBtn = modal.querySelector('.save-modal-btn');
   if (saveBtn) {
     saveBtn.addEventListener('click', () => {
+      if (!currentUser) {
+        alert('Please log in to save books.');
+        return;
+      }
+      
       alert(`Book "${book.title}" by ${book.author} has been saved to your collection.`);
+      // TODO: Implement actual save functionality to Firebase
     });
   }
 }
 
-// Book card action buttons
+// Book card action buttons (legacy support)
 document.addEventListener('click', (e) => {
   if (e.target.closest('.book-actions')) {
     const button = e.target.closest('button');
@@ -471,13 +675,41 @@ document.addEventListener('click', (e) => {
     const bookAuthor = bookCard.querySelector('.book-author').textContent;
     
     if (button.textContent.trim() === 'Issue') {
+      if (!currentUser) {
+        alert('Please log in to issue books.');
+        return;
+      }
+      
+      if (currentUser.status === 'pending') {
+        alert('Your account is pending approval. Please wait for admin approval.');
+        return;
+      }
+      
+      if (currentUser.status === 'blocked') {
+        alert('Your account has been blocked. Please contact admin.');
+        return;
+      }
+      
       // Redirect to issue page and pre-fill form
       document.querySelector('[data-page="issue"]').click();
-      const issueForm = document.querySelector('#issue-page form');
-      issueForm.querySelector('input[placeholder="Enter Book Title"]').value = bookTitle;
+      setTimeout(() => {
+        const issueForm = document.querySelector('#issue-page form');
+        if (issueForm) {
+          const titleInput = issueForm.querySelector('input[placeholder="Enter Book Title"]');
+          if (titleInput) {
+            titleInput.value = bookTitle;
+          }
+        }
+      }, 100);
     } else if (button.textContent.trim() === 'Save') {
+      if (!currentUser) {
+        alert('Please log in to save books.');
+        return;
+      }
+      
       // Functionality to save for later
       alert(`Book "${bookTitle}" by ${bookAuthor} has been saved to your collection.`);
+      // TODO: Implement actual save functionality to Firebase
     }
   }
 });
@@ -494,16 +726,25 @@ document.addEventListener('click', (e) => {
     if (button.textContent.trim() === 'Return') {
       // Redirect to return page
       document.querySelector('[data-page="return"]').click();
-      const returnForm = document.querySelector('#return-page form');
-      returnForm.querySelector('input[placeholder="Enter Book ID or ISBN"]').focus();
+      setTimeout(() => {
+        const returnForm = document.querySelector('#return-page form');
+        if (returnForm) {
+          const returnInput = returnForm.querySelector('input[placeholder="Enter Book ID or ISBN"]');
+          if (returnInput) {
+            returnInput.focus();
+          }
+        }
+      }, 100);
     } else if (button.textContent.trim() === 'Renew') {
       alert(`Book "${bookTitle}" has been renewed for 14 more days.`);
+      // TODO: Implement actual renew functionality
     } else if (button.textContent.trim() === 'Pay Fine') {
       // Redirect to pay page
       document.querySelector('[data-page="pay"]').click();
     } else if (button.textContent.trim() === 'Remove') {
       alert(`Book "${bookTitle}" has been removed from your saved collection.`);
       row.remove();
+      // TODO: Implement actual remove functionality from Firebase
     }
   }
 });
@@ -514,15 +755,33 @@ document.addEventListener('submit', (e) => {
   const form = e.target;
   const formId = form.closest('.page').id;
   
+  if (!currentUser) {
+    alert('Please log in to perform this action.');
+    return;
+  }
+  
+  if (currentUser.status === 'pending') {
+    alert('Your account is pending approval. Please wait for admin approval.');
+    return;
+  }
+  
+  if (currentUser.status === 'blocked') {
+    alert('Your account has been blocked. Please contact admin.');
+    return;
+  }
+  
   if (formId === 'issue-page') {
     alert('Book has been issued successfully!');
     form.reset();
+    // TODO: Implement actual issue functionality with Firebase
   } else if (formId === 'reserve-page') {
     alert('Book has been reserved successfully!');
     form.reset();
+    // TODO: Implement actual reserve functionality with Firebase
   } else if (formId === 'return-page') {
     alert('Book has been returned successfully!');
     form.reset();
+    // TODO: Implement actual return functionality with Firebase
   }
 });
 
@@ -530,6 +789,11 @@ document.addEventListener('submit', (e) => {
 const payAllFinesBtn = document.querySelector('.fine-summary .btn');
 if (payAllFinesBtn) {
   payAllFinesBtn.addEventListener('click', () => {
+    if (!currentUser) {
+      alert('Please log in to pay fines.');
+      return;
+    }
+    
     alert('All fines have been paid successfully!');
     // Update UI to reflect paid fines
     const fineRows = document.querySelectorAll('#pay-page .table tbody tr');
@@ -541,6 +805,28 @@ if (payAllFinesBtn) {
       actionCell.innerHTML = '<button class="btn btn-sm btn-outline" disabled>Paid</button>';
     });
     
-    document.querySelector('.fine-summary h3').textContent = 'Total Fine: $0.00';
+    const fineSummary = document.querySelector('.fine-summary h3');
+    if (fineSummary) {
+      fineSummary.textContent = 'Total Fine: $0.00';
+    }
+    
+    // TODO: Implement actual payment functionality with Firebase
   });
+}
+
+// Helper function to save book to user's collection (TODO: implement)
+async function saveBookToCollection(userId, bookId) {
+  try {
+    // Implementation would save to Firebase under user's saved books
+    console.log(`Saving book ${bookId} for user ${userId}`);
+    // const savedBooksRef = ref(database, `savedBooks/${userId}/${bookId}`);
+    // await set(savedBooksRef, { savedAt: serverTimestamp(), bookId: bookId });
+  } catch (error) {
+    console.error('Error saving book:', error);
+  }
+}
+
+// Helper function to get current user info
+function getCurrentUser() {
+  return currentUser;
 }

@@ -1,0 +1,46 @@
+/* ===== SEARCH AND FILTER BAR STYLES ===== */
+.table-search-bar {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid var(--gray);
+    border-radius: var(--border-radius);
+}
+
+.search-filter-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex-grow: 1;
+  position: relative;
+}
+
+.search-box i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray);
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid var(--gray);
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.search-box input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 1rem;
+}

@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="librarian.css">
+    <link rel="stylesheet" href="modal.css">
+    <link rel="stylesheet" href="pagination.css">
+    <link rel="stylesheet" href="searchfilter.css">
+    <link rel="stylesheet" href="status.css">
+    
 </head>
 <body>
     <aside class="sidebar">
@@ -22,7 +27,7 @@
             <li><a href="#" data-page="issue-books"><span class="material-symbols-outlined">book_online</span>Issue Books</a></li>
             <li><a href="#" data-page="return-books"><span class="material-symbols-outlined">assignment_return</span>Return Books</a></li>
             <li><a href="#" data-page="reservations"><span class="material-symbols-outlined">autorenew</span>Manage Reservations</a></li>
-            <li><a href="#" data-page="fines"><span class="material-symbols-outlined">payments</span>Manage Fines</a></li>
+            <li><a href="#" data-page="notifications"><span class="material-symbols-outlined">notifications</span>Notifications</a></li>
             <li><a href="#" data-page="reports"><span class="material-symbols-outlined">summarize</span>Generate Reports</a></li>
             <li><a href="#" id="logout-btn"><span class="material-symbols-outlined">logout</span>Logout</a></li>
         </ul>
@@ -32,82 +37,92 @@
         <div id="notification-container" class="notification-container"></div>
         
         <div id="dynamic-content">
-            <section id="dashboard-section" class="page-section active">
-                <div class="page-header">
-                    <h2>Dashboard</h2>
-                    <div class="header-actions">
-                        <button class="btn btn-outline" id="refreshDashboard"><i class="fas fa-sync-alt btn-icon"></i>Refresh</button>
-                    </div>
-                </div>
-                
-                <div class="dashboard-cards">
-                    <div class="stat-card books">
-                        <div class="card-header">
-                            <h3>Total Books</h3>
-                            <div class="icon"><i class="fas fa-book"></i></div>
-                        </div>
-                        <div class="card-value" id="total-books">0</div>
-                        <div class="card-trend"><i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month</div>
-                    </div>
-                    
-                    <div class="stat-card issued">
-                        <div class="card-header">
-                            <h3>Issued Books</h3>
-                            <div class="icon"><i class="fas fa-book-reader"></i></div>
-                        </div>
-                        <div class="card-value" id="issued-books">0</div>
-                        <div class="card-trend"><i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month</div>
-                    </div>
-                    
-                    <div class="stat-card reservations">
-                        <div class="card-header">
-                            <h3>Pending Reservations</h3>
-                            <div class="icon"><i class="fas fa-calendar-check"></i></div>
-                        </div>
-                        <div class="card-value" id="pending-reservations">0</div>
-                        <div class="card-trend"><i class="fas fa-arrow-down"></i> <span class="down">0%</span> from last month</div>
-                    </div>
-                    
-                    <div class="stat-card fines">
-                        <div class="card-header">
-                            <h3>Total Fines Collected</h3>
-                            <div class="icon"><i class="fas fa-money-bill-wave"></i></div>
-                        </div>
-                        <div class="card-value" id="total-fines">₱0</div>
-                        <div class="card-trend"><i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month</div>
-                    </div>
-                </div>
-                
-                <div class="chart-grid">
-                    <div class="chart-container">
-                        <h3>Monthly Circulation</h3>
-                        <canvas id="circulationChart" width="400" height="200"></canvas>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h3>Popular Categories</h3>
-                        <canvas id="categoriesChart" width="400" height="200"></canvas>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <h3>Recent Borrowed Books</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Book Title</th>
-                                <th>Borrower</th>
-                                <th>Issue Date</th>
-                                <th>Due Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="borrowed-books-list">
-                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+      <section id="dashboard-section" class="page-section active">
+    <div class="page-header">
+        <h2>Dashboard</h2>
+        <div class="header-actions">
+            <button class="btn btn-outline" id="refreshDashboard">
+                <i class="fas fa-sync-alt btn-icon"></i>Refresh
+            </button>
+        </div>
+    </div>
+    
+    <div class="dashboard-cards">
+        <div class="stat-card books">
+            <div class="card-header">
+                <h3>Total Books</h3>
+                <div class="icon"><i class="fas fa-book"></i></div>
+            </div>
+            <div class="card-value" id="total-books">0</div>
+            <div class="card-trend">
+                <i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month
+            </div>
+        </div>
+        
+        <div class="stat-card issued">
+            <div class="card-header">
+                <h3>Issued Books</h3>
+                <div class="icon"><i class="fas fa-book-reader"></i></div>
+            </div>
+            <div class="card-value" id="issued-books">0</div>
+            <div class="card-trend">
+                <i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month
+            </div>
+        </div>
+        
+        <div class="stat-card fines">
+            <div class="card-header">
+                <h3>Overdue Books</h3>
+                <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+            </div>
+            <div class="card-value" id="overdue-books">0</div>
+            <div class="card-trend">
+                <i class="fas fa-arrow-up"></i> <span class="up">0%</span> from last month
+            </div>
+        </div>
+        
+        <div class="stat-card reservations">
+            <div class="card-header">
+                <h3>Pending Reservations</h3>
+                <div class="icon"><i class="fas fa-calendar-check"></i></div>
+            </div>
+            <div class="card-value" id="pending-reservations">0</div>
+            <div class="card-trend">
+                <i class="fas fa-arrow-down"></i> <span class="down">0%</span> from last month
+            </div>
+        </div>
+    </div>
+    
+    <div class="chart-grid">
+        <div class="chart-container">
+            <h3>Monthly Circulation</h3>
+            <canvas id="monthlyCirculationChart" width="400" height="200"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <h3>Popular Categories</h3>
+            <canvas id="popularCategoriesChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Recent Borrowed Books</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Book Title</th>
+                    <th>Borrower</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="borrowed-books-list">
+                <tr><td colspan="5" class="text-center">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
 
             <section id="add-book-section" class="page-section">
                 <div class="page-header">
@@ -224,9 +239,7 @@
                         <select id="statusFilter" class="form-control">
                             <option value="">All Status</option>
                             <option value="Available">Available</option>
-                            <option value="Borrowed">Borrowed</option>
-                            <option value="Reserved">Reserved</option>
-                            <option value="Overdue">Overdue</option>
+                            <option value="Unavailable">Unavailable</option>
                         </select>
                     </div>
                 </div>
@@ -239,6 +252,7 @@
                                 <th>Author</th>
                                 <th>Category</th>
                                 <th>Quantity</th>
+                                <th>Avail. Qty</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -256,247 +270,325 @@
                 </div>
             </section>
             
-            <section id="issue-books-section" class="page-section">
-                <div class="page-header">
-                    <h2>Issue Books</h2>
+ <section id="issue-books-section" class="page-section">
+    <div class="page-header">
+        <h2>Issue Books</h2>
+    </div>
+    
+    <div class="book-action-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="issueScanISBN">Scan ISBN or Enter Book Details</label>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="issueScanISBN" class="form-control" placeholder="Scan barcode or enter ISBN/Title">
                 </div>
-                
-                <div class="book-action-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="issueScanISBN">Scan ISBN or Enter Book Details</label>
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="issueScanISBN" class="form-control" placeholder="Scan barcode or enter ISBN/Title">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="borrowerId">Borrower ID/Name</label>
-                            <div class="search-box">
-                                <i class="fas fa-user"></i>
-                                <input type="text" id="borrowerId" class="form-control" placeholder="Enter borrower ID or name">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="selected-book-info" id="issueBookInfo">
-                        <h4>Book Information</h4>
-                        <div class="selected-book-details">
-                            <div class="book-detail-item">
-                                <span>Title:</span> <span id="issueBookTitle">-</span>
-                            </div>
-                            <div class="book-detail-item">
-                                <span>Author:</span> <span id="issueBookAuthor">-</span>
-                            </div>
-                            <div class="book-detail-item">
-                                <span>ISBN:</span> <span id="issueBookISBN">-</span>
-                            </div>
-                            <div class="book-detail-item">
-                                <span>Status:</span> <span id="issueBookStatus">-</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="issueDate">Issue Date</label>
-                            <input type="date" id="issueDate" class="form-control" value="">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="dueDate">Due Date</label>
-                            <input type="date" id="dueDate" class="form-control" value="">
-                        </div>
-                    </div>
-                    
-                    <button type="button" id="issueBookBtn" class="btn btn-primary">
-                        <i class="fas fa-paper-plane btn-icon"></i>Issue Book
-                    </button>
-                </div>
-                
-                <div class="card">
-                    <h3>Recently Issued Books</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Book Title</th>
-                                <th>Borrower</th>
-                                <th>Issue Date</th>
-                                <th>Due Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recently-issued-list">
-                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            </div>
             
-            <section id="return-books-section" class="page-section">
-                <div class="page-header">
-                    <h2>Return Books</h2>
-                </div>
-                
-                <div class="book-action-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="returnScanISBN">Scan ISBN or Enter Book Details</label>
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="returnScanISBN" class="form-control" placeholder="Scan barcode or enter ISBN/Title">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="returnDate">Return Date</label>
-                            <input type="date" id="returnDate" class="form-control" value="">
-                        </div>
-                    </div>
-                    
-                    <div class="selected-book-info" id="returnBookInfo">
-                        <h4>Book Information</h4>
-                        <div class="selected-book-details">
-                            <div class="book-detail-item">
-                                <span>Title:</span> <span id="returnBookTitle">-</span>
-                            </div>
-                            <div class="book-detail-item">
-                                <span>Borrower:</span> <span id="returnBookBorrower">-</span>
-                            </div>
-                            <div class="book-detail-item">
-                                <span>Issue Date:</span> <span id="returnBookIssueDate">-</span>
-                            </div>
-                            <div class="book-detail-item">
-                                <span>Due Date:</span> <span id="returnBookDueDate">-</span>
-                            </div>
-                            <div class="book-detail-item">
-                                <span>Fine:</span> <span id="returnBookFine" class="fine-amount">-</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="bookCondition">Book Condition</label>
-                            <select id="bookCondition" class="form-control">
-                                <option value="Good">Good</option>
-                                <option value="Damaged">Damaged</option>
-                                <option value="Lost">Lost</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="fineCollected">Fine Collected</label>
-                            <input type="number" id="fineCollected" class="form-control" placeholder="Enter amount if applicable">
-                        </div>
-                    </div>
-                    
-                    <button type="button" id="returnBookBtn" class="btn btn-primary">
-                        <i class="fas fa-undo-alt btn-icon"></i>Return Book
-                    </button>
-                </div>
-                
-                <div class="card">
-                    <h3>Books Due For Return</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Book Title</th>
-                                <th>Borrower</th>
-                                <th>Issue Date</th>
-                                <th>Due Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="due-books-list">
-                            <tr><td colspan="6" class="text-center">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            <div class="form-group">
+                <label for="borrowerType">Borrower Type</label>
+                <select id="borrowerType" class="form-control">
+                    <option value="" selected disabled>Select Type</option>
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="borrowerName">Borrower Name</label>
+                <input type="text" id="borrowerName" class="form-control" placeholder="Full Name">
+            </div>
             
+            <div class="form-group">
+                <label for="borrowerLRN">LRN (Learner Reference Number)</label>
+                <input type="text" id="borrowerLRN" class="form-control" placeholder="Enter LRN">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="borrowerGrade">Grade Level</label>
+                <input type="text" id="borrowerGrade" class="form-control" placeholder="Grade Level">
+            </div>
+            
+            <div class="form-group">
+                <label for="borrowerSection">Section</label>
+                <input type="text" id="borrowerSection" class="form-control" placeholder="Section">
+            </div>
+        </div>
+        
+        <div class="selected-book-info" id="issueBookInfo">
+            <h4>Book Information</h4>
+            <div class="selected-book-details">
+                <div class="book-detail-item">
+                    <span>Title:</span> <span id="issueBookTitle">-</span>
+                </div>
+                <div class="book-detail-item">
+                    <span>Author:</span> <span id="issueBookAuthor">-</span>
+                </div>
+                <div class="book-detail-item">
+                    <span>ISBN:</span> <span id="issueBookISBN">-</span>
+                </div>
+                <div class="book-detail-item">
+                    <span>Status:</span> <span id="issueBookStatus">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="issueDate">Issue Date</label>
+                <input type="date" id="issueDate" class="form-control" value="">
+            </div>
+            
+            <div class="form-group">
+                <label for="dueDate">Due Date</label>
+                <input type="date" id="dueDate" class="form-control" value="">
+            </div>
+        </div>
+        
+        <button type="button" id="issueBookBtn" class="btn btn-primary">
+            <i class="fas fa-paper-plane btn-icon"></i>Issue Book
+        </button>
+    </div>
+    
+    <div class="card mt-4">
+        <h3>Pending Borrower Requests</h3>
+
+          <!-- Updated Search Bar -->
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search by book title, borrower, or status...">
+        </div>
+    </div>
+
+        <table class="data-table" style="border-collapse: collapse; width: 100%;">
+            <thead>
+                <tr>
+                    <th style="padding: 8px; text-align: center; width: 20%;">Book Title</th>
+                    <th style="padding: 8px; text-align: center; width: 20%;">Borrower</th>
+                    <th style="padding: 8px; text-align: center; width: 20%;">Request Date</th>
+                    <th style="padding: 8px; text-align: center; width: 20%;">Status</th>
+                    <th style="padding: 8px; text-align: center; width: 20%;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="pending-requests-list">
+                <tr><td colspan="5" style="padding: 8px; text-align: center;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    
+<div class="card mt-4">
+    <h3>Recently Issued Books</h3>
+    
+    <!-- Updated Search Bar -->
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search by book title, borrower, or status...">
+        </div>
+    </div>
+    
+    <table class="data-table" style="border-collapse: collapse; width: 100%;">
+        <thead>
+            <tr>
+                <th style="padding: 8px; text-align: center; width: 16.67%;">Book Title</th>
+                <th style="padding: 8px; text-align: center; width: 16.67%;">Borrower</th>
+                <th style="padding: 8px; text-align: center; width: 16.67%;">Borrower Type</th>
+                <th style="padding: 8px; text-align: center; width: 16.67%;">Issue Date</th>
+                <th style="padding: 8px; text-align: center; width: 16.67%;">Due Date</th>
+                <th style="padding: 8px; text-align: center; width: 16.67%;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="recently-issued-list">
+            <tr><td colspan="6" style="padding: 8px; text-align: center;">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+</div>
+
+</section>
+
+        <section id="return-books-section" class="page-section">
+    <div class="page-header">
+        <h2>Return Books</h2>
+    </div>
+    
+    <div class="book-action-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="returnTransactionSearch">Enter Transaction ID or Borrower Name</label>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="returnTransactionSearch" class="form-control" placeholder="Enter Transaction ID or Borrower Name">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="returnDate">Return Date</label>
+                <input type="date" id="returnDate" class="form-control" value="">
+            </div>
+        </div>
+        
+        <div class="selected-book-info" id="returnBookInfo">
+            <h4>Book Information</h4>
+            <div class="selected-book-details">
+                <div class="book-detail-item">
+                    <span>Title:</span> <span id="returnBookTitle">-</span>
+                </div>
+                <div class="book-detail-item">
+                    <span>Borrower:</span> <span id="returnBookBorrower">-</span>
+                </div>
+                <div class="book-detail-item">
+                    <span>Issue Date:</span> <span id="returnBookIssueDate">-</span>
+                </div>
+                <div class="book-detail-item">
+                    <span>Due Date:</span> <span id="returnBookDueDate">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="bookCondition">Book Condition</label>
+                <select id="bookCondition" class="form-control">
+                    <option value="Good">Good</option>
+                    <option value="Damaged">Damaged</option>
+                    <option value="Lost">Lost</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="returnStatus">Return Status</label>
+                <select id="returnStatus" class="form-control">
+                    <option value="On Time">On Time</option>
+                    <option value="Overdue">Overdue</option>
+                </select>
+            </div>
+        </div>
+        
+        <button type="button" id="returnBookBtn" class="btn btn-primary">
+            <i class="fas fa-undo-alt btn-icon"></i>Return Book
+        </button>
+    </div>
+    
+    <div class="card">
+        <h3>Books Due For Return</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Book Title</th>
+                    <th>Borrower</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="due-books-list">
+                <tr><td colspan="6" class="text-center">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
             <section id="reservations-section" class="page-section">
-                <div class="page-header">
-                    <h2>Manage Reservations</h2>
+    <div class="page-header">
+        <h2>Manage Reservations</h2>
+    </div>
+    
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="reservationSearch" placeholder="Search by book title or borrower...">
+        </div>
+        
+        <div class="filter-actions">
+            <select id="reservationStatusFilter" class="form-control">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Fullfilled</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Book Title</th>
+                    <th>Request By</th>
+                    <th>Request Date</th>
+                    <th>Return Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="reservations-list">
+                <tr><td colspan="6" class="text-center">Loading reservations...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section id="notifications-section" class="page-section">
+    <div class="page-header">
+        <h2>Notifications</h2>
+    </div>
+    
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="notificationSearch" placeholder="Search by borrower name...">
+        </div>
+        
+        <div class="filter-actions">
+            <select id="notificationTypeFilter" class="form-control">
+                <option value="">All Types</option>
+                <option value="Overdue">Overdue</option>
+                <option value="Borrow Requests">Borrow Requests</option>
+                <option value="Reservations">Reservations</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2 class="card-title">Overdue Items</h2>
+        <div class="notification-list" id="overdue-notifications-list">
+            <!-- Overdue items will be dynamically loaded here by JavaScript -->
+        </div>
+    </div>
+    
+    <div class="card card-spaced">
+        <h2 class="card-title">Borrow Requests</h2>
+        <div class="notification-list" id="borrow-requests-notification-list">
+            <!-- Pending borrow requests will be dynamically loaded here by JavaScript -->
+            <div class="notification-item" id="no-pending-requests" style="display: none;">
+                <div class="notification-icon">
+                    <span class="material-symbols-outlined">notifications_off</span>
                 </div>
-                
-                <div class="search-filter-bar">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="reservationSearch" placeholder="Search by book title or borrower...">
-                    </div>
-                    
-                    <div class="filter-actions">
-                        <select id="reservationStatusFilter" class="form-control">
-                            <option value="">All Status</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Rejected">Rejected</option>
-                        </select>
-                    </div>
+                <div class="notification-content">
+                    <h3>No Pending Requests</h3>
+                    <p>There are currently no pending borrow requests.</p>
                 </div>
-                
-                <div class="card">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Book Title</th>
-                                <th>Requested By</th>
-                                <th>Request Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reservations-list">
-                            <tr><td colspan="5" class="text-center">Loading reservations...</td></tr>
-                        </tbody>
-                    </table>
+                <div class="notification-time">
+                    <span>-</span>
                 </div>
-            </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-spaced">
+        <h2 class="card-title">Reservations</h2>
+        <div class="notification-list" id="reservations-notifications-list">
+            <!-- Reservation notifications will be dynamically loaded here by JavaScript -->
+        </div>
+    </div>
+</section>
             
-            <section id="fines-section" class="page-section">
-                <div class="page-header">
-                    <h2>Manage Fines</h2>
-                </div>
-                
-                <div class="search-filter-bar">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="fineSearch" placeholder="Search by borrower name...">
-                    </div>
-                    
-                    <div class="filter-actions">
-                        <select id="fineStatusFilter" class="form-control">
-                            <option value="">All Status</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Unpaid">Unpaid</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Borrower</th>
-                                <th>Book Title</th>
-                                <th>Due Date</th>
-                                <th>Return Date</th>
-                                <th>Fine Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fines-list">
-                            <tr><td colspan="7" class="text-center">Loading fines...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-            
-            <section id="reports-section" class="page-section">
+           <section id="reports-section" class="page-section">
                 <div class="page-header">
                     <h2>Generate Reports</h2>
                 </div>
@@ -505,14 +597,21 @@
                     <div class="report-card books" id="books-report">
                         <div class="report-icon"><i class="fas fa-book"></i></div>
                         <h3>Books Report</h3>
-                        <p>Generate reports and category distributioon book inventory, popular books, n.</p>
-                        <button class="btn btn-outline">Generate Report</button>
+                        <p>Generate reports and category distribution book inventory, popular books.</p>
+                        <button class="btn books btn-outline">Generate Report</button>
                     </div>
                     
                     <div class="report-card circulation" id="circulation-report">
                         <div class="report-icon"><i class="fas fa-exchange-alt"></i></div>
                         <h3>Circulation Report</h3>
                         <p>Generate reports on book issues, returns, and borrowing patterns.</p>
+                        <button class="btn circulation btn-outline">Generate Report</button>
+                    </div>
+                    
+                    <div class="report-card finance" id="overdue-report">
+                        <div class="report-icon"><i class="fas fa-chart-line"></i></div>
+                        <h3>Overdue Reports</h3>
+                        <p>Generate reports on late return.</p>
                         <button class="btn btn-outline">Generate Report</button>
                     </div>
                     
@@ -520,14 +619,7 @@
                         <div class="report-icon"><i class="fas fa-calendar-check"></i></div>
                         <h3>Reservations Report</h3>
                         <p>Generate reports on book reservations and waiting time.</p>
-                        <button class="btn btn-outline">Generate Report</button>
-                    </div>
-                    
-                    <div class="report-card finance" id="finance-report">
-                        <div class="report-icon"><i class="fas fa-chart-line"></i></div>
-                        <h3>Financial Report</h3>
-                        <p>Generate reports on fines collected, overdue books and financial statistics.</p>
-                        <button class="btn btn-outline">Generate Report</button>
+                        <button class="btn reservations btn-outline">Generate Report</button>
                     </div>
                 </div>
                 
@@ -540,7 +632,7 @@
                                 <option value="">Select Report Type</option>
                                 <option value="books">Books Inventory</option>
                                 <option value="circulation">Circulation Statistics</option>
-                                <option value="fines">Fine Collection</option>
+                                <option value="fines">Reservation Statistics</option>
                                 <option value="overdue">Overdue Books</option>
                             </select>
                         </div>
@@ -550,11 +642,10 @@
                             <select id="reportFormat" class="form-control">
                                 <option value="pdf">PDF</option>
                                 <option value="excel">Excel</option>
-                                <option value="csv">CSV</option>
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="reportStartDate">Start Date</label>
@@ -575,12 +666,25 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module" src="librarian/librarian.js"></script>
     <script type="module" src="librarian/addbooks.js"></script>
     <script type="module" src="librarian/dashboard.js"></script>
     <script type="module" src="librarian/managebooks.js"></script>
     <script type="module" src="librarian/qrcode-modal.js"></script>
-</body>
+    <script type="module" src="librarian/editModal.js"></script>
+    <script type="module" src="librarian/issuebook.js"></script>
+    <script type="module" src="librarian/recently-book-issues.js"></script>
+    <script type="module" src="librarian/pending-request.js"></script>
+    <script type="module" src="librarian/ereceipt.js"></script>
+    <script type="module" src="librarian/returnbook.js"></script>
+    <script type="module" src="librarian/managereserve.js"></script>
+    <script type="module" src="librarian/reports.js"></script>
+    <script type="module" src="librarian/circulation.js"></script>
+    <script type="module" src="librarian/overdue.js"></script>
+    <script type="module" src="librarian/reservation.js"></script>
+    <script type="module" src="librarian/custom.js"></script>
 </html>

@@ -1,6 +1,7 @@
-
+/* Import Poppins font from Google Fonts */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
 
+/* Root CSS variables for consistent colors and styling throughout the application */
 :root {
   --primary: #3b82f6;
   --primary-dark: #1d4ed8;
@@ -23,6 +24,7 @@
   --site-blue: #194896;
 }
 
+/* Global reset for consistent spacing and box-sizing */
 * {
   margin: 0;
   padding: 0;
@@ -30,13 +32,15 @@
   font-family: "Poppins", sans-serif;
 }
 
+/* Body styling for the full page layout */
 body {
   min-height: 100vh;
   background: var(--gray-light);
   display: flex;
 }
 
-/* Sidebar - Kept the same as requested */
+/* ----- SIDEBAR STYLES ----- */
+/* Main sidebar container with collapsible behavior */
 .sidebar {
   position: fixed;
   top: 0;
@@ -52,15 +56,18 @@ body {
   z-index: 100;
 }
 
+/* Sidebar expansion on hover */
 .sidebar:hover {
   width: 260px;
 }
 
+/* Header section of the sidebar containing logo/profile */
 .sidebar .sidebar-header {
   display: flex;
   align-items: center;
 }
 
+/* Logo/avatar styling in sidebar header */
 .sidebar .sidebar-header img {
   height: 50px;
   width: 50px;
@@ -68,6 +75,7 @@ body {
   filter: brightness(0) invert(1);
 }
 
+/* Title in sidebar header with transition effect */
 .sidebar .sidebar-header h3 {
   color: #fff;
   font-weight: 500;
@@ -77,10 +85,12 @@ body {
   transition: opacity 0.3s ease-in-out;
 }
 
+/* Show header title when sidebar expands */
 .sidebar:hover .sidebar-header h3 {
   opacity: 1;
 }
 
+/* Sidebar section headers */
 .sidebar-links h4 {
   color: #fff;
   font-weight: 500;
@@ -89,14 +99,17 @@ body {
   position: relative;
 }
 
+/* Hide category labels when sidebar is collapsed */
 .sidebar-links h4 span {
   opacity: 0;
 }
 
+/* Show category labels when sidebar expands */
 .sidebar:hover .sidebar-links h4 span {
   opacity: 1;
 }
 
+/* Separator line between menu sections */
 .sidebar-links .menu-separator {
   position: absolute;
   left: 0;
@@ -108,10 +121,12 @@ body {
   transition: transform 0.3s ease-in-out;
 }
 
+/* Hide separator when sidebar expands */
 .sidebar:hover .sidebar-links .menu-separator {
   transform: scaleX(0);
 }
 
+/* Container for sidebar menu links */
 .sidebar-links {
   list-style: none;
   margin-top: 20px;
@@ -120,10 +135,12 @@ body {
   scrollbar-width: none;
 }
 
+/* Hide scrollbar for sidebar links */
 .sidebar-links::-webkit-scrollbar {
   display: none;
 }
 
+/* Individual sidebar menu items */
 .sidebar-links li a {
   display: flex;
   align-items: center;
@@ -136,27 +153,32 @@ body {
   transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
 }
 
+/* Icon styling in sidebar menu */
 .sidebar-links li a span.material-symbols-outlined {
   font-size: 26px;
 }
 
+/* Text labels in sidebar menu with transition effect */
 .menu-text {
   font-size: 16px;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
 }
 
+/* Show menu text when sidebar expands */
 .sidebar:hover .menu-text {
   opacity: 1;
 }
 
+/* Hover effect for sidebar menu items */
 .sidebar-links li a:hover {
   color: #194896;
   background: #fff;
   border-radius: 4px;
 }
 
-/* Main Content */
+/* ----- MAIN CONTENT AREA ----- */
+/* Main content container that adjusts with sidebar */
 .main-content {
   flex-grow: 1;
   margin-left: 85px;
@@ -165,11 +187,13 @@ body {
   width: calc(100% - 85px);
 }
 
+/* Adjust main content when sidebar expands */
 .sidebar:hover ~ .main-content {
   margin-left: 260px;
   width: calc(100% - 260px);
 }
 
+/* Content section styling for card-like containers */
 .content-section {
   background-color: white;
   border-radius: var(--border-radius);
@@ -179,12 +203,14 @@ body {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* Hover effect for content sections */
 .content-section:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg), 0 10px 25px rgba(0, 0, 0, 0.07);
 }
 
-/* Section Headers */
+/* ----- SECTION HEADERS ----- */
+/* Section title styling with underline effect */
 .content-section h2 {
   margin-bottom: 1.5rem;
   font-weight: 600;
@@ -194,6 +220,7 @@ body {
   padding-bottom: 10px;
 }
 
+/* Underline decorator for section headers */
 .content-section h2::after {
   content: '';
   position: absolute;
@@ -205,7 +232,8 @@ body {
   border-radius: 3px;
 }
 
-/* Dashboard Cards */
+/* ----- DASHBOARD CARDS ----- */
+/* Grid layout for dashboard stat cards */
 .dashboard-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -213,6 +241,7 @@ body {
   margin-bottom: 2.5rem;
 }
 
+/* Individual stat card styling */
 .stat-card {
   background: #fff;
   border-radius: 12px;
@@ -223,6 +252,7 @@ body {
   overflow: hidden;
 }
 
+/* Colored top border for stat cards */
 .stat-card::before {
   content: '';
   position: absolute;
@@ -233,16 +263,19 @@ body {
   background: var(--primary);
 }
 
+/* Different colored borders for different card types */
 .stat-card.users::before { background: var(--primary); }
 .stat-card.students::before { background: var(--success); }
 .stat-card.teachers::before { background: var(--secondary); }
 .stat-card.pending::before { background: var(--warning); }
 
+/* Hover effect for stat cards */
 .stat-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }
 
+/* Header area of stat cards with title and icon */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -250,12 +283,14 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Title in card header */
 .card-header h3 {
   font-size: 1rem;
   font-weight: 500;
   color: var(--gray-dark);
 }
 
+/* Icon container in stat cards */
 .card-header .icon {
   width: 50px;
   height: 50px;
@@ -266,6 +301,7 @@ body {
   font-size: 1.5rem;
 }
 
+/* Colored backgrounds for different card icons */
 .users .icon {
   background: rgba(59, 130, 246, 0.15);
   color: var(--primary);
@@ -286,6 +322,7 @@ body {
   color: var(--warning);
 }
 
+/* Stat value display in cards */
 .card-value {
   font-size: 2.5rem;
   font-weight: 600;
@@ -293,6 +330,7 @@ body {
   color: var(--dark);
 }
 
+/* Trend indicator in stat cards */
 .card-trend {
   font-size: 0.875rem;
   display: flex;
@@ -300,15 +338,18 @@ body {
   gap: 0.25rem;
 }
 
+/* Positive trend indicator */
 .card-trend .up {
   color: var(--success);
 }
 
+/* Negative trend indicator */
 .card-trend .down {
   color: var(--danger);
 }
 
-/* Section Header with Search */
+/* ----- SECTION HEADERS WITH SEARCH ----- */
+/* Flex container for section header with search/filters */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -316,11 +357,13 @@ body {
   margin-bottom: 2rem;
 }
 
+/* Remove bottom margin when in flex layout */
 .section-header h2 {
   margin-bottom: 0;
 }
 
-/* Modern Search Container */
+/* ----- SEARCH CONTAINER STYLES ----- */
+/* Container for search box and related elements */
 .search-container {
   display: flex;
   align-items: center;
@@ -329,6 +372,7 @@ body {
   max-width: 550px;
 }
 
+/* Modern search box with shadow and animations */
 .search-box {
   position: relative;
   flex-grow: 1;
@@ -339,11 +383,13 @@ body {
   transition: all 0.3s ease;
 }
 
+/* Hover and focus effects for search box */
 .search-box:hover, .search-box:focus-within {
   box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
   transform: translateY(-2px);
 }
 
+/* Search icon positioning */
 .search-icon {
   position: absolute;
   left: 20px;
@@ -353,6 +399,7 @@ body {
   font-size: 18px;
 }
 
+/* Search input field styling */
 .search-input {
   width: 100%;
   height: 100%;
@@ -364,11 +411,13 @@ body {
   background: transparent;
 }
 
+/* Focus state for search input */
 .search-input:focus {
   outline: none;
   border-color: var(--primary);
 }
 
+/* Clear search button styling */
 .clear-search {
   position: absolute;
   right: 18px;
@@ -388,18 +437,21 @@ body {
   transition: all 0.2s ease;
 }
 
+/* Hover effect for clear search button */
 .clear-search:hover {
   color: var(--danger);
   background-color: rgba(239, 68, 68, 0.1);
 }
 
-/* Filter Bar */
+/* ----- FILTER BAR STYLES ----- */
+/* Container for filter dropdown selects */
 .filter-bar {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
+/* Form control styling for inputs and selects */
 .form-control {
   height: 48px;
   padding: 0 20px;
@@ -421,19 +473,22 @@ body {
   background-size: 16px;
 }
 
+/* Hover effect for form controls */
 .form-control:hover {
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
   transform: translateY(-1px);
   border-color: var(--primary);
 }
 
+/* Focus state for form controls */
 .form-control:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), var(--shadow-sm);
   border-color: var(--primary);
 }
 
-/* Table Container */
+/* ----- TABLE CONTAINER STYLES ----- */
+/* Container for data tables with shadow and rounded corners */
 .table-container {
   width: 100%;
   overflow-x: auto;
@@ -443,6 +498,7 @@ body {
   background: white;
 }
 
+/* Table container header */
 .table-container h3 {
   padding: 1.25rem;
   font-size: 1.25rem;
@@ -452,6 +508,7 @@ body {
   background: rgba(25, 72, 150, 0.03);
 }
 
+/* Base table styling */
 table {
   width: 100%;
   border-collapse: separate;
@@ -460,6 +517,7 @@ table {
   min-width: 100%;
 }
 
+/* Table header styling */
 thead {
   background: var(--site-blue);
   color: white;
@@ -469,6 +527,7 @@ thead {
   z-index: 2;
 }
 
+/* Table cell styling for headers and data */
 th, td {
   padding: 1rem 1.25rem;
   text-align: left;
@@ -479,6 +538,7 @@ th, td {
   line-height: 1.4;
 }
 
+/* Header cell specific styling */
 th {
   font-weight: 600;
   letter-spacing: 0.025em;
@@ -494,15 +554,18 @@ tbody tr {
   transition: background-color 0.2s ease-in-out;
 }
 
+/* Zebra striping for table rows */
 tbody tr:nth-child(even) {
   background: rgba(243, 244, 246, 0.5);
 }
 
+/* Hover effect for table rows */
 tbody tr:hover {
   background: rgba(25, 72, 150, 0.05);
 }
 
-/* Action buttons */
+/* ----- BUTTON STYLES ----- */
+/* Base button styling */
 .btn {
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -517,45 +580,53 @@ tbody tr:hover {
   border: none;
 }
 
+/* Small button variant */
 .btn-sm {
   padding: 0.35rem 0.75rem;
   font-size: 13px;
 }
 
+/* Primary button styling */
 .btn-primary {
   background: var(--primary);
   color: white;
 }
 
+/* Hover effect for primary button */
 .btn-primary:hover {
   background: var(--primary-dark);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
 }
 
+/* Success button styling */
 .btn-success {
   background: var(--success);
   color: white;
 }
 
+/* Hover effect for success button */
 .btn-success:hover {
   background: #0da271;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
+/* Danger button styling */
 .btn-danger {
   background: var(--danger);
   color: white;
 }
 
+/* Hover effect for danger button */
 .btn-danger:hover {
   background: #dc2626;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-/* Status badges */
+/* ----- STATUS BADGE STYLES ----- */
+/* Base status badge styling */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -565,22 +636,26 @@ tbody tr:hover {
   font-size: 13px;
 }
 
+/* Active status badge */
 .status-active {
   background: rgba(16, 185, 129, 0.1);
   color: var(--success);
 }
 
+/* Pending status badge */
 .status-pending {
   background: rgba(245, 158, 11, 0.1);
   color: var(--warning);
 }
 
+/* Blocked status badge */
 .status-blocked {
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger);
 }
 
-/* Modal Styles */
+/* ----- MODAL STYLES ----- */
+/* Modal overlay */
 .modal {
   position: fixed;
   top: 0;
@@ -597,11 +672,13 @@ tbody tr:hover {
   transition: all 0.3s ease;
 }
 
+/* Active state for modal */
 .modal.active {
   opacity: 1;
   visibility: visible;
 }
 
+/* Modal content container */
 .modal-content {
   background: white;
   border-radius: 12px;
@@ -615,10 +692,12 @@ tbody tr:hover {
   flex-direction: column;
 }
 
+/* Animation for modal content when active */
 .modal.active .modal-content {
   transform: translateY(0);
 }
 
+/* Modal header section */
 .modal-header {
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-light);
@@ -627,12 +706,14 @@ tbody tr:hover {
   align-items: center;
 }
 
+/* Modal title styling */
 .modal-header h2 {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--site-blue);
 }
 
+/* Close button for modal */
 .close-modal {
   background: none;
   border: none;
@@ -648,17 +729,20 @@ tbody tr:hover {
   border-radius: 50%;
 }
 
+/* Hover effect for close button */
 .close-modal:hover {
   color: var(--danger);
   background: rgba(239, 68, 68, 0.1);
 }
 
+/* Modal body section with scrolling */
 .modal-body {
   padding: 1.5rem;
   flex: 1;
   overflow-y: auto;
 }
 
+/* Modal footer for action buttons */
 .modal-footer {
   padding: 1.5rem;
   border-top: 1px solid var(--gray-light);
@@ -667,11 +751,13 @@ tbody tr:hover {
   gap: 1rem;
 }
 
-/* Form Styles */
+/* ----- FORM STYLES ----- */
+/* Form group container */
 .form-group {
   margin-bottom: 1.25rem;
 }
 
+/* Form label styling */
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
@@ -679,6 +765,7 @@ tbody tr:hover {
   color: var(--dark);
 }
 
+/* Form control for inputs, selects, etc. */
 .form-control {
   display: block;
   width: 100%;
@@ -694,12 +781,14 @@ tbody tr:hover {
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
+/* Focus state for form controls */
 .form-control:focus {
   border-color: var(--primary);
   outline: 0;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+/* Button styling specific to modals */
 .modal-btn {
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
@@ -710,37 +799,44 @@ tbody tr:hover {
   font-size: 15px;
 }
 
+/* Cancel button styling */
 .cancel-btn {
   background: var(--gray-light);
   color: var(--gray-dark);
 }
 
+/* Hover effect for cancel button */
 .cancel-btn:hover {
   background: var(--gray);
   color: white;
 }
 
+/* Save button styling */
 .save-btn {
   background: var(--primary);
   color: white;
 }
 
+/* Hover effect for save button */
 .save-btn:hover {
   background: var(--primary-dark);
   box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
 }
 
-/* Media Queries for Responsiveness */
+/* ----- RESPONSIVE STYLES ----- */
+/* Medium screens adjustments */
 @media (max-width: 992px) {
+  /* Adjust dashboard cards to 2 columns */
   .dashboard-cards {
     grid-template-columns: repeat(2, 1fr);
   }
   
+  /* Ensure table scrolling on smaller screens */
   table {
-    min-width: 800px; /* Ensures scrolling on smaller screens */
+    min-width: 800px;
   }
   
-  /* Priority-based column widths */
+  /* Priority-based column widths for responsiveness */
   table th:nth-child(1), table td:nth-child(1) { width: 20%; } /* Name */
   table th:nth-child(2), table td:nth-child(2) { width: 20%; } /* Email */
   table th:nth-child(3), table td:nth-child(3) { width: 15%; } /* LRN/Employee ID */
@@ -750,40 +846,50 @@ tbody tr:hover {
   table th:nth-child(7), table td:nth-child(7) { width: 10%; } /* Actions */
 }
 
+/* Small screens adjustments */
 @media (max-width: 768px) {
+  /* Stack dashboard cards */
   .dashboard-cards {
     grid-template-columns: 1fr;
   }
   
+  /* Stack section header elements */
   .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
   
+  /* Full width search on small screens */
   .search-container {
     width: 100%;
     max-width: none;
   }
   
+  /* Allow filter bar to wrap */
   .filter-bar {
     flex-wrap: wrap;
   }
   
+  /* Half-width form controls on small screens */
   .form-control {
     width: calc(50% - 0.5rem);
   }
 }
 
+/* Extra small screens adjustments */
 @media (max-width: 576px) {
+  /* Reduce padding in content sections */
   .content-section {
     padding: 1.25rem;
   }
   
+  /* Full width form controls on very small screens */
   .form-control {
     width: 100%;
   }
   
+  /* Nearly full width modal on very small screens */
   .modal-content {
     width: 95%;
   }
@@ -791,25 +897,30 @@ tbody tr:hover {
 
 /* Responsive table for very small screens */
 @media (max-width: 576px) {
+  /* Full width table container with negative margin */
   .table-container {
-    margin: 0 -1rem; /* Negative margin to stretch table to full width */
+    margin: 0 -1rem;
     width: calc(100% + 2rem);
     border-radius: 0;
   }
   
+  /* Smaller font for table on tiny screens */
   table {
     font-size: 13px;
   }
   
+  /* Reduce cell padding for compact view */
   th, td {
     padding: 0.75rem 0.5rem;
     height: 50px;
   }
   
+  /* Prevent action button wrapping */
   .action-buttons {
     flex-wrap: nowrap;
   }
   
+  /* Smaller action buttons for tiny screens */
   .action-btn {
     width: 28px;
     height: 28px;
@@ -817,7 +928,8 @@ tbody tr:hover {
   }
 }
 
-/* Status styling */
+/* ----- STATUS INDICATOR STYLES ----- */
+/* Base status indicator */
 .status {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -828,25 +940,30 @@ tbody tr:hover {
   min-width: 90px;
 }
 
+/* Status positioning in table cells */
 td .status {
   margin-left: 0;
 }
 
+/* Approved status indicator */
 .status.approved {
   background-color: rgba(16, 185, 129, 0.1);
   color: #10b981;
 }
 
+/* Pending status indicator */
 .status.pending {
   background-color: rgba(245, 158, 11, 0.1);
   color: #f59e0b;
 }
 
+/* Rejected status indicator */
 .status.rejected {
   background-color: rgba(239, 68, 68, 0.1);
   color: #ef4444;
 }
 
+/* Blocked status indicator */
 .status.blocked {
   background-color: rgba(99, 102, 241, 0.1);
   color: #6366f1;

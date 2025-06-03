@@ -24,6 +24,13 @@ app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// --- Database Middleware ---
+// Add database connection to request object
+app.use((req, res, next) => {
+  req.db = pool;
+  next();
+});
+
 // --- Static File Handling ---
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -72,6 +79,16 @@ const upload = multer({
 const bookRoutes = require('./routes/bookRoutes');
 app.use('/api/books', bookRoutes);
 
+const borrowRoutes = require('./routes/borrowRoutes');
+app.use('/api/borrow', borrowRoutes);
+
+const reserveRoutes = require('./routes/reserveRoutes');
+app.use('/api/reservations', reserveRoutes);
+
+// --- Dashboard Routes ---
+const dashboardRoutes = require('./routes/dashboardRoutes');
+app.use('/api/dashboard', dashboardRoutes);
+
 // --- Categories Routes ---
 app.get('/api/categories', async (req, res) => {
   try {
@@ -117,18 +134,6 @@ app.post('/api/categories', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
   console.log('✅ Health check passed');
-});
-
-// --- Dashboard Stats ---
-app.get('/api/dashboard/stats', async (req, res) => {
-  try {
-    const stats = await getStats();
-    console.log('📊 Dashboard stats fetched successfully:', stats);
-    res.json({ success: true, ...stats });
-  } catch (error) {
-    console.error('❌ Error fetching stats:', error.message);
-    res.status(500).json({ success: false, message: 'Error fetching stats' });
-  }
 });
 
 // --- 404 + Error Handling ---

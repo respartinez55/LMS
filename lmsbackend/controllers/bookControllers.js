@@ -174,6 +174,229 @@ exports.addBook = async (req, res) => {
   }
 };
 
+// ---------- BORROW BOOK ----------
+exports.borrowBook = async (req, res) => {
+  let conn;
+  try {
+    const {
+      transaction_id,
+      book_id,
+      user_id,
+      user_email,
+      user_name,
+      borrow_date,
+      due_date,
+      qr_code,
+      image_path
+    } = req.body;
+
+    // Validate required fields
+    if (!book_id || !user_id || !user_email || !user_name || !borrow_date || !due_date) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: book_id, user_id, user_email, user_name, borrow_date, due_date' 
+      });
+    }
+
+    conn = await pool.getConnection();
+    
+    // Start transaction
+    await conn.beginTransaction();
+
+    try {
+      // Check if book exists and get its current quantity
+      const [bookRows] = await conn.query(
+        'SELECT quantity, status FROM books WHERE id = ? FOR UPDATE',
+        [book_id]
+      );
+
+      if (bookRows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ success: false, message: 'Book not found' });
+      }
+
+      const currentQuantity = bookRows[0].quantity || 0;
+      const currentStatus = bookRows[0].status;
+
+      if (currentQuantity <= 0 || currentStatus === 'Not Available') {
+        await conn.rollback();
+        return res.status(400).json({ success: false, message: 'Book is not available for borrowing' });
+      }
+
+      // Insert borrowing record
+      const [borrowResult] = await conn.query(`
+        INSERT INTO borrowings 
+        (transaction_id, book_id, user_id, user_email, user_name, borrow_date, due_date, qr_code, image_path, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        transaction_id, book_id, user_id, user_email, user_name, 
+        borrow_date, due_date, qr_code, image_path, 'Active'
+      ]);
+
+      // Update book quantity and status
+      const newQuantity = currentQuantity - 1;
+      let newStatus = newQuantity === 0 ? 'Not Available' : 'Available';
+
+      await conn.query(`
+        UPDATE books SET quantity = ?, status = ? WHERE id = ?
+      `, [newQuantity, newStatus, book_id]);
+
+      // Commit transaction
+      await conn.commit();
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Book borrowed successfully',
+        borrowingId: borrowResult.insertId,
+        newQuantity,
+        newStatus
+      });
+
+    } catch (transactionError) {
+      await conn.rollback();
+      throw transactionError;
+    }
+
+  } catch (error) {
+    console.error('❌ [borrowBook] Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Error borrowing book', 
+      error: error.message 
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
+// ---------- RETURN BOOK ----------
+exports.returnBook = async (req, res) => {
+  let conn;
+  try {
+    const { borrowing_id, return_date, condition, fine_amount = 0 } = req.body;
+
+    if (!borrowing_id || !return_date) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: borrowing_id, return_date' 
+      });
+    }
+
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    try {
+      // Get borrowing record and book info
+      const [borrowingRows] = await conn.query(`
+        SELECT b.*, bk.quantity, bk.status 
+        FROM borrowings b 
+        JOIN books bk ON b.book_id = bk.id 
+        WHERE b.id = ? AND b.status = 'Active'
+      `, [borrowing_id]);
+
+      if (borrowingRows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ success: false, message: 'Active borrowing record not found' });
+      }
+
+      const borrowing = borrowingRows[0];
+      const currentQuantity = borrowing.quantity || 0;
+
+      // Update borrowing record
+      await conn.query(`
+        UPDATE borrowings 
+        SET status = 'Returned', return_date = ?, condition_on_return = ?, fine_amount = ?
+        WHERE id = ?
+      `, [return_date, condition, fine_amount, borrowing_id]);
+
+      // Update book quantity and status
+      const newQuantity = currentQuantity + 1;
+      const newStatus = 'Available';
+
+      await conn.query(`
+        UPDATE books SET quantity = ?, status = ? WHERE id = ?
+      `, [newQuantity, newStatus, borrowing.book_id]);
+
+      await conn.commit();
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Book returned successfully',
+        newQuantity,
+        fineAmount: fine_amount
+      });
+
+    } catch (transactionError) {
+      await conn.rollback();
+      throw transactionError;
+    }
+
+  } catch (error) {
+    console.error('❌ [returnBook] Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Error returning book', 
+      error: error.message 
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
+// ---------- GET BORROWING RECORDS ----------
+exports.getBorrowingRecords = async (req, res) => {
+  let conn;
+  try {
+    const { user_id, status, page = 1, limit = 10 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const filters = [];
+    const params = [];
+
+    if (user_id) { filters.push('br.user_id = ?'); params.push(user_id); }
+    if (status) { filters.push('br.status = ?'); params.push(status); }
+
+    const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    const query = `
+      SELECT br.*, b.title, b.author, b.isbn 
+      FROM borrowings br
+      JOIN books b ON br.book_id = b.id
+      ${whereClause}
+      ORDER BY br.borrow_date DESC 
+      LIMIT ? OFFSET ?
+    `;
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM borrowings br
+      JOIN books b ON br.book_id = b.id
+      ${whereClause}
+    `;
+
+    conn = await pool.getConnection();
+    const [records] = await conn.query(query, [...params, parseInt(limit), offset]);
+    const [[{ total }]] = await conn.query(countQuery, params);
+
+    return res.json({
+      success: true,
+      records,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      }
+    });
+  } catch (error) {
+    console.error('❌ [getBorrowingRecords] Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get borrowing records', 
+      error: error.message 
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
 // ---------- REPORT / EXPORT ----------
 exports.getBooksReport = async (req, res) => {
   let conn;

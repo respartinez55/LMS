@@ -1,6 +1,6 @@
 // add-book.js - Handles add book functionality
 
-import { API_BASE_URL, showNotification, loadDashboardData } from './dashboard.js';
+import { API_BASE_URL, showNotification, refreshDashboardDataOnly } from './dashboard.js';
 
 // Load categories from server and populate dropdowns
 async function loadCategories() {
@@ -65,20 +65,6 @@ async function loadCategories() {
   } catch (error) {
     console.error("❌ Error loading categories:", error);
     showNotification(`❌ ${error.message}`, "error");
-  }
-}
-
-// Get status class for styling
-function getStatusClass(status) {
-  switch (status.toLowerCase()) {
-    case "available":
-      return "status-available";
-    case "issued":
-      return "status-issued";
-    case "reserved":
-      return "status-reserved";
-    default:
-      return "status-available";
   }
 }
 
@@ -319,7 +305,7 @@ async function generateQRCodeData(title, author, isbn) {
   });
 }
 
-// Save/Update Book
+// Save Book (for new books only)
 async function saveBook(event) {
   event.preventDefault();
 
@@ -328,10 +314,11 @@ async function saveBook(event) {
   const category = document.getElementById("bookCategory").value.trim();
   const isbn = document.getElementById("bookISBN").value.trim();
   const description = document.getElementById("bookDescription").value.trim();
+  const quantity = document.getElementById("bookQuantity") ? document.getElementById("bookQuantity").value.trim() : "1";
   const coverImageEl = document.getElementById("bookCover");
   const coverImage = coverImageEl?.files?.[0] || null;
 
-  if (!title || !author || !category || !isbn) {
+  if (!title || !author || !category || !isbn || !quantity) {
     showNotification("❌ Please fill in all required fields.", "error");
     return;
   }
@@ -342,19 +329,21 @@ async function saveBook(event) {
     return;
   }
 
+  if (isNaN(quantity) || Number(quantity) < 1) {
+    showNotification("❌ Quantity must be a positive number.", "error");
+    return;
+  }
+
   try {
-    const form = document.getElementById("addBookForm");
-    const isEdit = form.getAttribute("data-mode") === "edit";
-    const bookId = form.getAttribute("data-book-id");
-    
     // Update button to show processing state
     const saveButton = document.getElementById("saveBookBtn");
     const saveButtonText = document.getElementById("saveButtonText");
     const saveButtonSpinner = document.getElementById("saveButtonSpinner");
     
-    saveButtonText.style.display = "none";
-    saveButtonSpinner.style.display = "inline-block";
-    saveButton.disabled = true;
+    // Check if elements exist before modifying them
+    if (saveButtonText) saveButtonText.style.display = "none";
+    if (saveButtonSpinner) saveButtonSpinner.style.display = "inline-block";
+    if (saveButton) saveButton.disabled = true;
 
     const formData = new FormData();
     formData.append("title", title);
@@ -362,32 +351,29 @@ async function saveBook(event) {
     formData.append("category", category);
     formData.append("isbn", isbn);
     formData.append("description", description);
+    formData.append("quantity", quantity);
     
-    // Only generate QR for new books
-    if (!isEdit) {
-      try {
-        const qrImage = await generateQRCodeData(title, author, isbn);
-        if (!qrImage) {
-          console.warn("QR Code generation returned null");
-        } else {
-          formData.append("qrCode", qrImage);
-        }
-      } catch (qrError) {
-        console.error("❌ QR Code generation error:", qrError);
-        // Continue even if QR generation fails
+    // Generate QR for new books
+    try {
+      const qrImage = await generateQRCodeData(title, author, isbn);
+      if (!qrImage) {
+        console.warn("QR Code generation returned null");
+      } else {
+        formData.append("qrCode", qrImage);
       }
+    } catch (qrError) {
+      console.error("❌ QR Code generation error:", qrError);
+      // Continue even if QR generation fails
     }
     
     if (coverImage) formData.append("bookCover", coverImage);
 
-    const url = isEdit 
-      ? `${API_BASE_URL}/api/books/${bookId}`
-      : `${API_BASE_URL}/api/books`;
+    const url = `${API_BASE_URL}/api/books`;
 
-    console.log(`Sending ${isEdit ? 'PUT' : 'POST'} request to: ${url}`);
+    console.log(`Sending POST request to: ${url}`);
     
     const response = await fetch(url, {
-      method: isEdit ? "PUT" : "POST",
+      method: "POST",
       body: formData,
     });
 
@@ -412,73 +398,46 @@ async function saveBook(event) {
       throw new Error((data && data.message) || "Failed to save book");
     }
 
-    showNotification(
-      isEdit 
-        ? "✅ Book updated successfully!" 
-        : "✅ Book added successfully with QR Code!",
-      "success"
-    );
+    showNotification("✅ Book added successfully with QR Code!", "success");
 
-    if (isEdit) {
-      // Switch back to manage books view
-      document.querySelector('a[data-page="manage-books"]').click();
-    } else {
-      resetForm();
-    }
+    // Reset the form for new book additions - stay on the same page
+    resetForm();
     
-    loadDashboardData();
-    // Reload book list if we're on the manage-books page
-    if (document.getElementById("manage-books-section").classList.contains("active")) {
-      // Check if loadAllBooks is defined before calling
-      if (typeof loadAllBooks === 'function') {
-        loadAllBooks();
-      } else {
-        console.warn("loadAllBooks function not found");
-      }
-    }
+    // Refresh dashboard data in the background WITHOUT navigating
+    console.log("📚 Book added successfully, updating dashboard data...");
+    await refreshDashboardDataOnly();
+    
+    // Dispatch a custom event to notify other parts of the app
+    const bookAddedEvent = new CustomEvent('bookAdded', {
+      detail: { title, author, category, isbn }
+    });
+    document.dispatchEvent(bookAddedEvent);
+    
+    // User stays on the add book page - no navigation
+    
   } catch (error) {
     console.error("❌ Error saving book:", error);
     showNotification(`❌ ${error.message}`, "error");
   } finally {
-    // Reset button state
+    // Reset button state - Check if elements exist before modifying them
     const saveButton = document.getElementById("saveBookBtn");
     const saveButtonText = document.getElementById("saveButtonText");
     const saveButtonSpinner = document.getElementById("saveButtonSpinner");
     
-    if (saveButtonText) saveButtonText.style.display = "inline";
-    if (saveButtonSpinner) saveButtonSpinner.style.display = "none";
-    
     if (saveButtonText) {
-      saveButtonText.textContent = document.getElementById("addBookForm").getAttribute("data-mode") === "edit"
-        ? "Update Book"
-        : "Save Book";
+      saveButtonText.style.display = "inline";
+      saveButtonText.textContent = "Save Book";
     }
-    
+    if (saveButtonSpinner) saveButtonSpinner.style.display = "none";
     if (saveButton) saveButton.disabled = false;
   }
 }
 
-// Reset form and form state
+// Reset form
 function resetForm() {
   const form = document.getElementById("addBookForm");
   if (form) {
     form.reset();
-    form.removeAttribute("data-mode");
-    form.removeAttribute("data-book-id");
-    
-    // Reset form title
-    const header = document.querySelector("#add-book-section .page-header h2");
-    if (header) header.textContent = "Add New Book";
-    
-    // Reset button text
-    const saveButtonText = document.getElementById("saveButtonText");
-    if (saveButtonText) saveButtonText.textContent = "Save Book";
-    
-    // Remove cancel button if exists
-    const cancelBtn = document.getElementById("cancelEditBtn");
-    if (cancelBtn) {
-      cancelBtn.remove();
-    }
     
     // Reset image preview
     const previewElement = document.getElementById("bookCoverPreview");
@@ -492,109 +451,33 @@ function resetForm() {
     if (qrCodeElement) {
       qrCodeElement.innerHTML = "";
     }
+    
+    // Hide new category input if visible
+    toggleNewCategoryInput(false);
+    
+    // Reset category dropdown to default option
+    const categoryDropdown = document.getElementById("bookCategory");
+    if (categoryDropdown) {
+      categoryDropdown.value = "";
+    }
+    
+    // Focus back to the first input for better UX
+    const titleInput = document.getElementById("bookTitle");
+    if (titleInput) {
+      titleInput.focus();
+    }
   }
 }
 
-// Load book for editing
-async function loadBookForEditing(bookId) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/books/${bookId}`, {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-    });
-
-    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+// Ensure form has proper submit handler
+function ensureFormSubmitHandler() {
+  const form = document.getElementById("addBookForm");
+  if (form) {
+    // Remove all existing submit handlers to prevent duplicates
+    form.removeEventListener("submit", saveBook);
     
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message);
-
-    // Switch to Add Book section and update form
-    document.querySelectorAll(".page-section").forEach(section => {
-      section.classList.remove("active");
-    });
-    document.getElementById("add-book-section").classList.add("active");
-
-    // Update sidebar active state
-    document.querySelectorAll(".sidebar-links li a").forEach(link => {
-      link.classList.remove("active");
-    });
-    document.querySelector('a[data-page="add-book"]').classList.add("active");
-
-    // Fill form with book data
-    const form = document.getElementById("addBookForm");
-    form.setAttribute("data-mode", "edit");
-    form.setAttribute("data-book-id", bookId);
-
-    document.getElementById("bookTitle").value = data.book.title;
-    document.getElementById("bookAuthor").value = data.book.author;
-    
-    // First ensure categories are loaded before setting the value
-    await loadCategories();
-    const categoryDropdown = document.getElementById("bookCategory");
-    
-    // Check if the category exists in the dropdown
-    let categoryExists = false;
-    for (let i = 0; i < categoryDropdown.options.length; i++) {
-      if (categoryDropdown.options[i].value === data.book.category) {
-        categoryExists = true;
-        break;
-      }
-    }
-    
-    // If the category doesn't exist in the dropdown, add it
-    if (!categoryExists && data.book.category) {
-      const newOption = document.createElement("option");
-      newOption.value = data.book.category;
-      newOption.textContent = data.book.category;
-      categoryDropdown.insertBefore(newOption, categoryDropdown.querySelector('[value="add-new"]'));
-    }
-    
-    // Now set the value
-    categoryDropdown.value = data.book.category;
-    
-    document.getElementById("bookISBN").value = data.book.isbn;
-    document.getElementById("bookDescription").value = data.book.description || "";
-
-    // Update image preview if exists
-    const previewElement = document.getElementById("bookCoverPreview");
-    if (data.book.cover_image) {
-      previewElement.src = `${API_BASE_URL}${data.book.cover_image}`;
-      previewElement.style.display = "block";
-    } else {
-      previewElement.style.display = "none";
-    }
-
-    // Update form title and button
-    const header = document.querySelector("#add-book-section .page-header h2");
-    if (header) header.textContent = "Edit Book";
-    
-    const saveButtonText = document.getElementById("saveButtonText");
-    if (saveButtonText) saveButtonText.textContent = "Update Book";
-
-    // Add cancel button if not exists
-    if (!document.getElementById("cancelEditBtn")) {
-      const cancelBtn = document.createElement("button");
-      cancelBtn.id = "cancelEditBtn";
-      cancelBtn.className = "btn btn-outline";
-      cancelBtn.type = "button";
-      cancelBtn.textContent = "Cancel";
-      cancelBtn.onclick = function() {
-        // Redirect to manage books page
-        document.querySelector('a[data-page="manage-books"]').click();
-        // Reset the form as well
-        resetForm();
-      };
-      
-      const saveButton = document.getElementById("saveBookBtn");
-      if (saveButton && saveButton.parentNode) {
-        saveButton.parentNode.appendChild(cancelBtn);
-      }
-    }
-
-    showNotification("✅ Book loaded for editing", "success");
-  } catch (error) {
-    console.error("❌ Error loading book for edit:", error);
-    showNotification(`❌ ${error.message}`, "error");
+    // Add the submit handler
+    form.addEventListener("submit", saveBook);
   }
 }
 
@@ -606,24 +489,15 @@ document.addEventListener("DOMContentLoaded", () => {
 // Initialize add book functionality
 function initAddBook() {
   // Set up event listeners
-  const addBookForm = document.getElementById("addBookForm");
-  if (addBookForm) {
-    // Remove any existing event listeners to avoid duplicates
-    const oldForm = addBookForm.cloneNode(true);
-    addBookForm.parentNode.replaceChild(oldForm, addBookForm);
-    
-    // Add new event listener
-    oldForm.addEventListener("submit", saveBook);
-  }
+  ensureFormSubmitHandler();
   
   const bookCoverInput = document.getElementById("bookCover");
   if (bookCoverInput) {
     // Remove any existing event listeners
-    const oldInput = bookCoverInput.cloneNode(true);
-    bookCoverInput.parentNode.replaceChild(oldInput, bookCoverInput);
+    bookCoverInput.removeEventListener("change", handleImagePreview);
     
     // Add new event listener
-    oldInput.addEventListener("change", handleImagePreview);
+    bookCoverInput.addEventListener("change", handleImagePreview);
   }
   
   // Load categories
@@ -635,8 +509,7 @@ export {
   loadCategories,
   saveBook,
   resetForm,
-  loadBookForEditing,
-  getStatusClass,
   formatDate,
-  addCategoryToDatabase
+  addCategoryToDatabase,
+  ensureFormSubmitHandler
 };

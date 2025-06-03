@@ -20,6 +20,7 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --transition: all 0.3s ease;
+  --site-blue: #194896;
 }
 
 * {
@@ -219,10 +220,26 @@ body {
   margin-bottom: 1.5rem;
 }
 
+/* Updated Page Title with underline styling from first code */
 .page-title {
   font-weight: 600;
-  color: var(--dark);
-  font-size: 1.5rem;
+  color: var(--site-blue);
+  font-size: 1.75rem;
+  position: relative;
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+/* Underline decorator for page title */
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: var(--site-blue);
+  border-radius: 3px;
 }
 
 .header-actions {
@@ -392,7 +409,7 @@ body {
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
   padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-top: -5px;
 }
 
 .card-title {
@@ -405,7 +422,7 @@ body {
 .card-subtitle {
   color: var(--gray-dark);
   margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  margin-top: -5px
 }
 
 /* Modern styling for book cards and status indicators */
@@ -869,71 +886,12 @@ body {
   font-size: 0.9rem;
 }
 
-/* Table Styles */
-.table-container {
-  overflow-x: auto;
-}
-
-.table, .data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td,
-.data-table th,
-.data-table td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--gray-light);
-}
-
-.table th,
-.data-table th {
-  font-weight: 600;
-  color: var(--gray-dark);
-  background-color: rgba(243, 244, 246, 0.8);
-}
-
-.table tbody tr:hover,
-.data-table tbody tr:hover {
-  background-color: rgba(243, 244, 246, 0.5);
-}
-
-.data-table .text-center {
-  text-align: center;
-}
-
-/* Badge Styles */
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.badge-success {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: var(--success);
-}
-
-.badge-warning {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: var(--warning);
-}
-
-.badge-danger {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--danger);
-}
-
 /* Form Styles */
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 form {
@@ -941,12 +899,13 @@ form {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  margin-top: -15px;
 }
 
 .form-label, .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-top: 1rem;
   font-weight: 500;
   color: var(--gray-dark);
 }
@@ -1092,50 +1051,7 @@ textarea.form-control {
   color: white;
 }
 
-/* Fine Summary */
-.fine-summary {
-  margin-top: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 1rem;
-  border-top: 1px solid var(--gray-light);
-}
 
-.fine-summary h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--dark);
-}
-
-/* Status Pills */
-.status-pill {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.status-available {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: var(--success);
-}
-
-.status-issued {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: var(--warning);
-}
-
-.status-reserved {
-  background-color: rgba(99, 102, 241, 0.1);
-  color: var(--secondary);
-}
-
-.status-overdue {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--danger);
-}
 
 .search-filter-bar {
   display: flex;
@@ -1516,6 +1432,7 @@ select.form-control:focus {
 
 .receipt-value {
   color: #333;
+
 }
 
 .receipt-status {
@@ -1680,3 +1597,4 @@ select.form-control:focus {
 .action-link.primary:after {
     background-color: #1a73e8;
 }
+

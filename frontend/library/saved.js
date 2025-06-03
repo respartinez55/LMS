@@ -115,55 +115,75 @@ async function loadSavedBooks() {
     
     savedBooksTable.innerHTML = '';
 
-    const fetchPromises = savedBookIds.map(bookId => 
-      fetch(`${API_BASE_URL}/api/books/${bookId}`, {
-        method: "GET",
-        headers: { "Accept": "application/json" }
-      })
-      .then(response => {
+    // Track successful and failed fetches
+    let successCount = 0;
+    let failedIds = [];
+
+    const fetchPromises = savedBookIds.map(async (bookId) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/books/${bookId}`, {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+        
         if (!response.ok) {
-          throw new Error(`Failed to fetch book with ID ${bookId}`);
+          console.warn(`Book with ID ${bookId} not found (${response.status})`);
+          failedIds.push(bookId);
+          return null;
         }
-        return response.json();
-      })
-      .then(data => {
-        if (data.success) {
+        
+        const data = await response.json();
+        
+        if (data.success && data.book) {
+          successCount++;
           return data.book;
+        } else {
+          console.warn(`Book with ID ${bookId} returned invalid data:`, data);
+          failedIds.push(bookId);
+          return null;
         }
-        throw new Error(`Book with ID ${bookId} not found`);
-      })
-      .catch(error => {
-        console.error(error);
+      } catch (error) {
+        console.error(`Error fetching book ${bookId}:`, error);
+        failedIds.push(bookId);
         return null;
-      })
-    );
+      }
+    });
 
     const books = await Promise.all(fetchPromises);
     const validBooks = books.filter(book => book !== null);
 
+    // Clean up localStorage by removing failed book IDs
+    if (failedIds.length > 0) {
+      const updatedSavedBooks = savedBookIds.filter(id => !failedIds.includes(id));
+      localStorage.setItem('savedBooks', JSON.stringify(updatedSavedBooks));
+      
+      if (failedIds.length === 1) {
+        showNotification(`⚠️ Removed 1 invalid book from saved list`, "warning");
+      } else if (failedIds.length > 1) {
+        showNotification(`⚠️ Removed ${failedIds.length} invalid books from saved list`, "warning");
+      }
+    }
+
     if (validBooks.length === 0) {
-      savedBooksTable.innerHTML = `
-        <tr>
-          <td colspan="6">
-            <div class="empty-table-message">
-              <span class="material-symbols-outlined">error</span>
-              <p>Failed to load saved books. Please try again later.</p>
-            </div>
-          </td>
-        </tr>
-      `;
+      displayEmptySavedState();
       return;
     }
 
+    // Display the valid books
     validBooks.forEach(book => {
       const row = createSavedBookTableRow(book);
       savedBooksTable.appendChild(row);
     });
 
     console.log(`✅ Loaded ${validBooks.length} saved books successfully`);
+    
+    if (failedIds.length > 0) {
+      console.log(`⚠️ Cleaned up ${failedIds.length} invalid book IDs from saved list`);
+    }
+
   } catch (error) {
     console.error("❌ Error loading saved books:", error);
-    showNotification(`❌ ${error.message}`, "error");
+    showNotification(`❌ Failed to load saved books: ${error.message}`, "error");
     
     const savedBooksTable = document.getElementById("saved-books-table");
     if (savedBooksTable) {
@@ -173,6 +193,7 @@ async function loadSavedBooks() {
             <div class="empty-table-message">
               <span class="material-symbols-outlined">error</span>
               <p>Failed to load saved books. Please try again.</p>
+              <button class="btn btn-primary" onclick="loadSavedBooks()">Retry</button>
             </div>
           </td>
         </tr>
@@ -185,13 +206,24 @@ function createSavedBookTableRow(book) {
   const row = document.createElement('tr');
   row.dataset.bookId = book.id;
   
-  const isAvailable = book.status && book.status.toLowerCase() === 'available';
-  const buttonClass = isAvailable ? 'btn-primary' : 'btn-secondary';
-  const buttonText = isAvailable ? 'Borrow' : 'Reserve';
-  const buttonDisabled = !isAvailable ? 'disabled' : '';
+  const statusLower = book.status ? book.status.toLowerCase() : '';
+  const isAvailable = statusLower === 'available';
+  const isReserved = statusLower === 'reserved';
+  const isUnavailable = statusLower === 'unavailable' || statusLower === 'borrowed' || statusLower === 'issued';
+  
+  // Determine button properties based on status
+  let buttonClass, buttonText, buttonDisabled = '';
+  
+  if (isAvailable) {
+    buttonClass = 'btn-primary';
+    buttonText = 'Borrow';
+  } else {
+    // For all non-available books (reserved, unavailable, borrowed, issued)
+    buttonClass = 'btn-secondary';
+    buttonText = 'Reserve';
+  }
   
   const categoryName = typeof book.category === 'object' ? book.category.name : book.category;
-  
   const fallbackImage = getFallbackImageUrl();
   
   row.innerHTML = `
@@ -220,12 +252,19 @@ function createSavedBookTableRow(book) {
   const removeBtn = row.querySelector('.remove-btn');
   const coverImg = row.querySelector('.book-cover-img');
   
-  if (actionBtn && isAvailable) {
+  // Handle action button click based on book status
+  if (actionBtn) {
     actionBtn.addEventListener('click', () => {
-      if (window.booksModule && window.booksModule.handleBorrowBook) {
-        window.booksModule.handleBorrowBook(book.id, book.title);
+      if (isAvailable) {
+        // Handle borrow action for available books
+        if (window.booksModule && window.booksModule.handleBorrowBook) {
+          window.booksModule.handleBorrowBook(book.id, book.title);
+        } else {
+          handleBorrowBookFallback(book.id, book.title);
+        }
       } else {
-        handleBorrowBookFallback(book.id, book.title);
+        // Handle reserve action for all non-available books - pass the full book data
+        handleReserveBook(book.id, book.title, book);
       }
     });
   }
@@ -273,8 +312,12 @@ function displayEmptySavedState() {
   
   const browseBtn = document.getElementById("browse-books-btn");
   if (browseBtn) {
-    browseBtn.addEventListener("click", () => {
-      document.querySelector('a[data-page="books"]').click();
+    browseBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const booksLink = document.querySelector('a[data-page="books"]');
+      if (booksLink) {
+        booksLink.click();
+      }
     });
   }
 }
@@ -312,17 +355,109 @@ function clearAllSavedBooks() {
 }
 
 function handleBorrowBookFallback(bookId, bookTitle) {
-  document.querySelector('a[data-page="borrow"]').click();
+  const borrowLink = document.querySelector('a[data-page="borrow"]');
+  if (borrowLink) {
+    borrowLink.click();
+    
+    setTimeout(() => {
+      const bookIdInput = document.querySelector('#borrow-page input[placeholder="Enter Book ID or ISBN"]');
+      const bookTitleInput = document.querySelector('#borrow-page input[placeholder="Enter Book Title"]');
+      
+      if (bookIdInput) bookIdInput.value = bookId;
+      if (bookTitleInput) bookTitleInput.value = bookTitle;
+      
+      showNotification(`✅ Selected book: ${bookTitle}`, "success");
+    }, 100);
+  } else {
+    showNotification("❌ Could not navigate to borrow page", "error");
+  }
+}
+
+// Enhanced function to handle reserve book action with auto-fill
+function handleReserveBook(bookId, bookTitle, bookData = null) {
+  const reserveLink = document.querySelector('a[data-page="reserve"]');
+  if (reserveLink) {
+    reserveLink.click();
+    
+    setTimeout(() => {
+      // Try to populate reserve page inputs if they exist
+      const bookIdInput = document.querySelector('#reserve-page input[placeholder*="Book ID"], #reserve-page input[placeholder*="ISBN"]');
+      const bookTitleInput = document.querySelector('#reserve-page input[placeholder*="Book Title"], #reserve-page input[placeholder*="Title"]');
+      
+      if (bookIdInput) bookIdInput.value = bookId;
+      if (bookTitleInput) bookTitleInput.value = bookTitle;
+      
+      // Auto-fill book information section if bookData is provided
+      if (bookData) {
+        populateReserveBookInfo(bookData);
+      } else {
+        // If no book data provided, try to fetch it
+        fetchAndPopulateBookInfo(bookId);
+      }
+      
+      showNotification(`✅ Navigated to reserve page for: ${bookTitle}`, "success");
+    }, 100);
+  } else {
+    showNotification("❌ Could not navigate to reserve page", "error");
+  }
+}
+
+// Function to populate the reserve book information section
+function populateReserveBookInfo(book) {
+  const bookInfoSection = document.getElementById('reserveBookInfo');
+  if (!bookInfoSection) {
+    console.warn('Reserve book info section not found');
+    return;
+  }
   
-  setTimeout(() => {
-    const bookIdInput = document.querySelector('#borrow-page input[placeholder="Enter Book ID or ISBN"]');
-    const bookTitleInput = document.querySelector('#borrow-page input[placeholder="Enter Book Title"]');
+  // Update the book information display
+  const titleElement = document.getElementById('issueBookTitle');
+  const authorElement = document.getElementById('issueBookAuthor');
+  const isbnElement = document.getElementById('issueBookISBN');
+  const dueDateElement = document.getElementById('issueBookDueDate');
+  
+  if (titleElement) titleElement.textContent = book.title || '-';
+  if (authorElement) authorElement.textContent = book.author || '-';
+  if (isbnElement) isbnElement.textContent = book.isbn || '-';
+  
+  // For reserve, we might want to show expected availability date instead of due date
+  // You can modify this logic based on your requirements
+  if (dueDateElement) {
+    // Calculate expected availability (you can customize this logic)
+    const expectedDate = new Date();
+    expectedDate.setDate(expectedDate.getDate() + 7); // Add 7 days as example
+    dueDateElement.textContent = expectedDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+  
+  // Show the book info section
+  bookInfoSection.style.display = 'block';
+}
+
+// Function to fetch book data and populate info if not already available
+async function fetchAndPopulateBookInfo(bookId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/books/${bookId}`, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
     
-    if (bookIdInput) bookIdInput.value = bookId;
-    if (bookTitleInput) bookTitleInput.value = bookTitle;
+    if (!response.ok) {
+      console.warn(`Could not fetch book details for ID ${bookId}`);
+      return;
+    }
     
-    showNotification(`✅ Selected book: ${bookTitle}`, "success");
-  }, 100);
+    const data = await response.json();
+    
+    if (data.success && data.book) {
+      populateReserveBookInfo(data.book);
+    }
+  } catch (error) {
+    console.error(`Error fetching book details for reservation:`, error);
+  }
 }
 
 function showBookDetails(book) {
@@ -346,6 +481,24 @@ function showBookDetails(book) {
   }
   
   const categoryName = typeof book.category === 'object' ? book.category.name : book.category;
+  const statusLower = book.status ? book.status.toLowerCase() : '';
+  const isAvailable = statusLower === 'available';
+  const isReserved = statusLower === 'reserved';
+  
+  // Determine modal button properties
+  let modalButtonClass, modalButtonText, modalButtonDisabled = '';
+  
+  if (isAvailable) {
+    modalButtonClass = 'confirm-btn';
+    modalButtonText = 'Borrow Book';
+  } else if (isReserved) {
+    modalButtonClass = 'confirm-btn';
+    modalButtonText = 'Reserve Book';
+  } else {
+    modalButtonClass = 'confirm-btn disabled';
+    modalButtonText = 'Not Available';
+    modalButtonDisabled = 'disabled';
+  }
   
   modal.innerHTML = `
     <div class="modal-content">
@@ -361,7 +514,7 @@ function showBookDetails(book) {
           </div>
           <div class="book-details-info">
             <p><strong>Author:</strong> ${book.author}</p>
-            <p><strong>Category:</strong> ${categoryName}</p>
+            <p><strong>Category:</strong> ${categoryName || 'Uncategorized'}</p>
             <p><strong>ISBN:</strong> ${book.isbn || 'N/A'}</p>
             <p>
               <strong>Status:</strong> 
@@ -381,38 +534,51 @@ function showBookDetails(book) {
       </div>
       <div class="modal-footer">
         <button class="modal-btn cancel-btn" id="close-details-btn">Close</button>
-        <button class="modal-btn confirm-btn ${book.status.toLowerCase() !== 'available' ? 'disabled' : ''}" 
-          id="borrow-from-modal-btn" ${book.status.toLowerCase() !== 'available' ? 'disabled' : ''}>
-          Borrow Book
+        <button class="modal-btn ${modalButtonClass}" 
+          id="action-from-modal-btn" ${modalButtonDisabled}>
+          ${modalButtonText}
         </button>
       </div>
     </div>
   `;
   
   modal.style.display = 'flex';
-  
+
+  // Add event listeners
   const closeBtn = modal.querySelector('.close-modal');
   const closeBtnFooter = modal.querySelector('#close-details-btn');
-  const borrowBtn = modal.querySelector('#borrow-from-modal-btn');
+  const actionBtn = modal.querySelector('#action-from-modal-btn');
   
-  closeBtn.addEventListener('click', () => {
+  const closeModal = () => {
     modal.style.display = 'none';
-  });
+  };
   
-  closeBtnFooter.addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
+  closeBtn.addEventListener('click', closeModal);
+  closeBtnFooter.addEventListener('click', closeModal);
   
-  borrowBtn.addEventListener('click', () => {
-    modal.style.display = 'none';
-    handleBorrowBookFallback(book.id, book.title);
-  });
+  if (actionBtn && !modalButtonDisabled) {
+    actionBtn.addEventListener('click', () => {
+      closeModal();
+      if (isAvailable) {
+        handleBorrowBookFallback(book.id, book.title);
+      } else if (isReserved) {
+        // Pass the full book data for auto-fill
+        handleReserveBook(book.id, book.title, book);
+      }
+    });
+  }
   
-  window.addEventListener('click', (event) => {
+  // Close modal when clicking outside
+  const handleOutsideClick = (event) => {
     if (event.target === modal) {
-      modal.style.display = 'none';
+      closeModal();
+      window.removeEventListener('click', handleOutsideClick);
     }
-  });
+  };
+  
+  setTimeout(() => {
+    window.addEventListener('click', handleOutsideClick);
+  }, 100);
 }
 
 function initSavedBooks() {
@@ -423,6 +589,7 @@ function initSavedBooks() {
     });
   }
   
+  // Add styles for book covers if not already present
   if (!document.getElementById('book-cover-styles')) {
     const styleElement = document.createElement('style');
     styleElement.id = 'book-cover-styles';
@@ -440,35 +607,75 @@ function initSavedBooks() {
         height: 100%;
         object-fit: cover;
         transition: transform 0.2s;
+        cursor: pointer;
       }
       
       .book-cover-img:hover {
         transform: scale(1.05);
+      }
+      
+      .loading-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 20px;
+        color: #666;
+      }
+      
+      .loading-spinner .material-symbols-outlined {
+        font-size: 2rem;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      
+      .empty-table-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        padding: 40px;
+        color: #666;
+      }
+      
+      .empty-table-message .material-symbols-outlined {
+        font-size: 3rem;
+        color: #ccc;
       }
     `;
     document.head.appendChild(styleElement);
   }
 }
 
+// Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   initSavedBooks();
   
+  // Load saved books if we're currently on the saved page
   const currentPage = document.querySelector('.page.active');
   if (currentPage && currentPage.id === 'saved-page') {
     loadSavedBooks();
   }
 });
 
+// Export functions for global access
 window.savedBooksModule = {
   loadSavedBooks,
   removeFromSaved,
   clearAllSavedBooks,
-  showBookDetails
+  showBookDetails,
+  handleReserveBook
 };
 
+// ES6 exports (if using modules)
 export {
   loadSavedBooks,
   removeFromSaved,
   clearAllSavedBooks,
-  showBookDetails
+  showBookDetails,
+  handleReserveBook
 };

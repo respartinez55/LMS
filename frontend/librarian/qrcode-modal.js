@@ -7,40 +7,51 @@ const createQRModal = () => {
 
   const modalHTML = `
     <div id="qrCodeModal" class="modal">
-      <div class="modal-content receipt">
-        <div class="modal-header receipt-header">
-          <h2>Book QR Code</h2>
-          <span class="close-modal">&times;</span>
+      <div class="modal-content">
+        <button class="close-modal">&times;</button>
+        <div class="receipt">
+          <div class="receipt-header">
+            <h2>BOOK QR CODE</h2>
+          </div>
+          
+          <div class="receipt-qrcode">
+            <div id="qrcode">
+              <div id="modalQrCode"></div>
+            </div>
+            <h3 id="modal-book-title">Loading...</h3>
+          </div>
+          
+          <div class="receipt-details">
+            <div class="receipt-row">
+              <span class="receipt-label">Author:</span>
+              <span id="modal-book-author" class="receipt-value">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">ISBN:</span>
+              <span id="modal-book-isbn" class="receipt-value">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Category:</span>
+              <span id="modal-book-category" class="receipt-value">-</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">Status:</span>
+              <span id="modal-book-status" class="receipt-status">-</span>
+            </div>
+          </div>
+          
+          <div class="receipt-footer">
+            <p>Generated on ${new Date().toLocaleDateString()}</p>
+          </div>
         </div>
-        <div class="modal-body receipt-details">
-          <div class="qr-container receipt-barcode">
-            <div id="modalQrCode"></div>
-          </div>
-          <div class="book-details">
-            <h3 id="modal-book-title" class="receipt-label">Loading...</h3>
-            <div class="book-detail-item receipt-row">
-              <span class="receipt-label">Author:</span> <span id="modal-book-author" class="receipt-value">-</span>
-            </div>
-            <div class="book-detail-item receipt-row">
-              <span class="receipt-label">ISBN:</span> <span id="modal-book-isbn" class="receipt-value">-</span>
-            </div>
-            <div class="book-detail-item receipt-row">
-              <span class="receipt-label">Category:</span> <span id="modal-book-category" class="receipt-value">-</span>
-            </div>
-            <div class="book-detail-item receipt-row">
-              <span class="receipt-label">Status:</span> <span id="modal-book-status" class="receipt-status">-</span>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer receipt-footer">
-          <div class="notification-actions">
-            <button id="printQrBtn" class="btn btn-outline action-link">
-              <i class="fas fa-print"></i> Print QR Code
-            </button>
-            <button id="downloadQrBtn" class="btn btn-primary action-link primary">
-              <i class="fas fa-download"></i> Download QR Code
-            </button>
-          </div>
+        
+        <div class="modal-footer">
+          <button id="printQrBtn" class="btn-secondary">
+            <i class="fas fa-print"></i> Print QR Code
+          </button>
+          <button id="downloadQrBtn" class="btn-primary">
+            <i class="fas fa-download"></i> Download QR Code
+          </button>
         </div>
       </div>
     </div>
@@ -52,197 +63,270 @@ const createQRModal = () => {
 
   const styleElement = document.createElement('style');
   styleElement.textContent = `
-    #qrCodeModal.modal {
+    #qrCodeModal {
       display: none;
       position: fixed;
-      z-index: 1000;
+      z-index: 1050;
       left: 0;
       top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0, 0, 0, 0.5);
-      align-items: center;
-      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.5);
     }
-    
+
+    #qrCodeModal.show {
+      display: block !important;
+    }
+
     #qrCodeModal .modal-content {
-      background-color: white;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      width: 400px;
-      max-width: 90%;
-      animation: modalFadeIn 0.3s;
+      background: #fff;
+      margin: 2vh auto;
+      padding: 25px;
+      border-radius: 8px;
+      width: 550px;
+      max-width: 90vw;
+      max-height: 96vh;
       position: relative;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    
-    @keyframes modalFadeIn {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -60%);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-      }
-    }
-    
-    #qrCodeModal .modal-header {
-      text-align: center;
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px dashed #ccc;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    #qrCodeModal .modal-header h2 {
-      margin: 0;
-      font-size: 1.3rem;
-      color: #333;
-    }
-    
-    #qrCodeModal .modal-body {
-      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    
-    #qrCodeModal .qr-container {
+
+    #qrCodeModal .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #666;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+
+    #qrCodeModal .close-modal:hover {
+      color: #dc3545;
+    }
+
+    .receipt {
       text-align: center;
-      margin-bottom: 15px;
+      padding: 25px 0;
+      width: 90%;
+      max-width: 500px;
     }
-    
-    #qrCodeModal .book-details {
+
+    .receipt h2 {
+      margin: 0 0 15px 0;
+      color:rgb(0, 0, 0);
+    }
+
+    .receipt-header {
+      margin-bottom: 7px;
+      margin-top: -30px;
+    }
+
+    .receipt-header h3 {
+      color:rgb(0, 0, 0);
+      margin: 0 0 10px 0;
+      margin-top: 100px;
+    }
+
+    .receipt-qrcode {
+      margin: 15px 0;
+      padding: 30px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border: 1px solid #dee2e6;
       width: 100%;
+      box-sizing: border-box;
     }
-    
-    #qrCodeModal .book-detail-item {
+
+    .receipt-qrcode p {
+      margin-top: 15px;
+      margin-bottom: 0;
+      font-size: 15px;
+      color: #666;
+    }
+
+    #modal-book-title {
+      margin-top: 10px;
+      margin-bottom: 0;
+    }
+
+    #qrcode {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 0;
+    }
+
+    #qrcode canvas,
+    #qrcode img {
+      border: 1px solid #000000;
+      border-radius: 4px;
+      height: 200px;
+      width: 200px;
+    }
+
+    .receipt-details {
+      text-align: left;
+      margin: 25px 0;
+      width: 100%;
+      padding: 0 25px;
+      box-sizing: border-box;
+    }
+
+    .receipt-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
-      padding: 5px 0;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 30px;
     }
-    
-    #qrCodeModal .receipt-label {
-      font-weight: bold;
+
+    .receipt-row:last-child {
+      border-bottom: none;
+    }
+
+    .receipt-label {
+      font-weight: 600;
       color: #555;
+      flex-shrink: 0;
+      min-width: 120px;
     }
-    
-    #qrCodeModal .receipt-value {
+
+    .receipt-value {
       color: #333;
+      text-align: right;
+      word-break: break-word;
     }
-    
-    #qrCodeModal .receipt-status {
+
+    .receipt-status {
       color: #28a745;
       font-weight: bold;
     }
-    
-    #qrCodeModal .modal-footer {
-      text-align: center;
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px dashed #ccc;
+
+    .receipt-footer {
+      margin-top: 15px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      font-size: 14px;
       color: #666;
     }
-    
-    #qrCodeModal .close-modal {
-      font-size: 24px;
-      font-weight: bold;
-      cursor: pointer;
-      color: #777;
+
+    .receipt-footer p {
+      margin: 0;
     }
-    
-    #qrCodeModal .close-modal:hover {
-      color: #333;
-    }
-    
-    #qrCodeModal .notification-actions {
+
+    .modal-footer {
+      margin-top: 15px;
       display: flex;
-      gap: 1rem;
-      margin-top: 0.5rem;
+      gap: 10px;
       justify-content: center;
-      width: 100%;
     }
-    
-    #qrCodeModal .btn {
-      display: inline-flex;
+
+    .modal-footer button {
+      margin-top: -10px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
       align-items: center;
-      justify-content: center;
       gap: 8px;
       padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.2s ease;
-      border: none;
-      font-size: 0.85rem;
-      text-decoration: none;
       min-width: 130px;
       height: 40px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 0.85rem;
     }
-    
-    #qrCodeModal .btn-outline {
-      background-color: transparent;
-      border: 1px solid #ddd;
-      color: #555;
+
+    .btn-primary {
+      background: #007bff;
+      color: #fff;
     }
-    
-    #qrCodeModal .btn-outline:hover {
-      background-color: #f5f5f5;
+
+    .btn-primary:hover {
+      background: #0056b3;
+      transform: translateY(-1px);
     }
-    
-    #qrCodeModal .btn-primary {
-      background-color: #1a73e8;
-      color: white;
+
+    .btn-secondary {
+      background: #6c757d;
+      color: #fff;
     }
-    
-    #qrCodeModal .btn-primary:hover {
-      background-color: #1565c0;
+
+    .btn-secondary:hover {
+      background: #545b62;
+      transform: translateY(-1px);
     }
-    
-    #qrCodeModal #modal-book-title {
-      text-align: center;
-      margin: 0 0 15px 0;
-      padding-bottom: 10px;
-      font-size: 1.1rem;
-      border-bottom: 1px dashed #ccc;
-      width: 100%;
-    }
-    
-    @media print {
-      body * {
-        visibility: hidden;
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      #qrCodeModal .modal-content {
+        width: 95vw;
+        margin: 1vh auto;
+        max-height: 98vh;
+        padding: 15px;
       }
-      .modal-content, .modal-content * {
-        visibility: visible;
+      
+      .receipt {
+        padding: 15px 0;
       }
-      .modal-content {
-        position: absolute;
-        left: 0;
-        top: 0;
+    }
+
+    @media (max-width: 480px) {
+      .modal-footer {
+        flex-direction: column;
+      }
+      
+      .modal-footer button {
         width: 100%;
-        border: none;
-        box-shadow: none;
       }
-      .modal-header, .modal-footer {
-        display: none;
+      
+      .receipt-row {
+        flex-direction: column;
+        gap: 4px;
+      }
+      
+      .receipt-label {
+        font-size: 14px;
+      }
+    }
+
+    /* Print Styles */
+    @media print {
+      #qrCodeModal {
+        position: static !important;
+        background: none !important;
+      }
+      
+      #qrCodeModal .modal-content {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+      }
+      
+      .close-modal,
+      .modal-footer {
+        display: none !important;
+      }
+      
+      .receipt {
+        color: black !important;
+        background: white !important;
       }
     }
   `;
   document.head.appendChild(styleElement);
 
-  const closeBtn = document.querySelector('.close-modal');
+  const closeBtn = document.querySelector('#qrCodeModal .close-modal');
   const modal = document.getElementById('qrCodeModal');
 
   closeBtn.addEventListener('click', () => {
@@ -349,11 +433,18 @@ const updateBookDetails = (bookData) => {
 };
 
 const openQRModal = async (bookId) => {
+  // Add validation for bookId
+  if (!bookId) {
+    console.error('Invalid book ID provided:', bookId);
+    return;
+  }
+
   createQRModal();
   
   const modal = document.getElementById('qrCodeModal');
   modal.style.display = 'block';
   
+  // Reset modal content to loading state
   document.getElementById('modal-book-title').textContent = 'Loading...';
   document.getElementById('modal-book-author').textContent = '-';
   document.getElementById('modal-book-isbn').textContent = '-';
@@ -365,10 +456,15 @@ const openQRModal = async (bookId) => {
     const bookData = await fetchBookData(bookId);
     if (bookData) {
       generateQRCode(bookData);
+    } else {
+      // Close modal if no book data is returned
+      modal.style.display = 'none';
     }
   } catch (error) {
     console.error('Error in openQRModal:', error);
     showNotification('Failed to generate QR code', 'error');
+    // Close modal on error
+    modal.style.display = 'none';
   }
 };
 
@@ -443,7 +539,7 @@ const printQRCode = () => {
         .print-button {
           padding: 10px 20px;
           font-size: 0.9rem;
-          background-color: #1a73e8;
+          background-color: #007bff;
           color: white;
           border: none;
           border-radius: 8px;
@@ -455,14 +551,14 @@ const printQRCode = () => {
           transition: background-color 0.2s;
         }
         .print-button:hover {
-          background-color: #1565c0;
+          background-color: #0056b3;
         }
         .close-button {
           padding: 10px 20px;
           font-size: 0.9rem;
-          background-color: #f5f5f5;
-          color: #333;
-          border: 1px solid #ddd;
+          background-color: #6c757d;
+          color: white;
+          border: none;
           border-radius: 8px;
           margin: 20px 5px;
           cursor: pointer;
@@ -472,7 +568,7 @@ const printQRCode = () => {
           transition: background-color 0.2s;
         }
         .close-button:hover {
-          background-color: #e5e5e5;
+          background-color: #545b62;
         }
         @media print {
           .no-print {

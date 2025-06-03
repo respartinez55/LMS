@@ -1,0 +1,395 @@
+/* ----- TABLE CONTAINER STYLES ----- */
+/* Container for data tables with shadow and rounded corners */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: white;
+  position: relative;
+}
+
+/* Table container header */
+.table-container h3 {
+  padding: 1.25rem;
+  font-size: 1.25rem;
+  color: #1e40af;
+  font-weight: 600;
+  border-bottom: 1px solid #dbeafe;
+  background: rgba(25, 72, 150, 0.03);
+}
+
+/* Base table styling */
+.table, table, .data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  min-width: 100%;
+}
+
+/* Table header styling */
+thead, .data-table thead {
+  background: #1e40af;
+  color: white;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Table cell styling for headers and data */
+th, td {
+  padding: 1rem 1.25rem;
+  text-align: center;
+  border-bottom: 1px solid #dbeafe;
+  position: relative;
+  vertical-align: middle;
+  height: 60px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Enhanced header cell styling */
+th, .data-table th {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  border-bottom: 2px solid #dbeafe;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #1e40af;
+  color: white;
+}
+
+/* Enhanced data cell styling - ALL DATA CENTERED */
+.data-table td, td {
+  color: var(--dark);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Row styling */
+tbody tr, .data-table tbody tr {
+  transition: all 0.2s ease;
+  background-color: white;
+}
+
+/* Zebra striping for table rows */
+tbody tr:nth-child(even), .data-table tbody tr:nth-child(even) {
+  background: rgba(243, 244, 246, 0.5);
+}
+
+/* Enhanced hover effect for table rows */
+tbody tr:hover, .data-table tbody tr:hover {
+  background: rgba(25, 72, 150, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Remove border from last row */
+.data-table tbody tr:last-child td,
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* First column styling - Left aligned for book titles/names */
+th:first-child, td:first-child,
+.data-table th:first-child, .data-table td:first-child {
+  padding-left: 1.5rem;
+  text-align: left;
+}
+
+/* Last column styling - Center alignment and padding */
+th:last-child, td:last-child,
+.data-table th:last-child, .data-table td:last-child {
+  padding-right: 1.5rem;
+  text-align: center;
+}
+
+/* ----- BUTTON STYLES FOR TABLES ----- */
+/* Base button styling */
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  text-decoration: none;
+}
+
+/* Small button variant */
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 13px;
+}
+
+/* Primary button styling */
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Hover effect for primary button */
+.btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
+}
+
+/* Secondary button styling */
+.btn-secondary {
+  background: #6366f1;
+  color: white;
+}
+
+/* Hover effect for secondary button */
+.btn-secondary:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+/* Accent button styling (for remove/delete actions) */
+.btn-accent {
+  background: #ef4444;
+  color: white;
+}
+
+/* Hover effect for accent button */
+.btn-accent:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+/* Success button styling */
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+/* Hover effect for success button */
+.btn-success:hover {
+  background: #0da271;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+/* Button spacing in table cells */
+td .btn + .btn {
+  margin-left: 0.5rem;
+}
+
+/* ===== RESPONSIVE COLUMN WIDTHS BASED ON COLUMN COUNT ===== */
+
+/* 2 Columns - 60% / 40% */
+.data-table.cols-2 th:nth-child(1),
+.data-table.cols-2 td:nth-child(1) {
+  width: 60%;
+  text-align: left;
+}
+
+.data-table.cols-2 th:nth-child(2),
+.data-table.cols-2 td:nth-child(2) {
+  width: 40%;
+  text-align: center;
+}
+
+/* 3 Columns - 50% / 25% / 25% */
+.data-table.cols-3 th:nth-child(1),
+.data-table.cols-3 td:nth-child(1) {
+  width: 50%;
+  text-align: left;
+}
+
+.data-table.cols-3 th:nth-child(2),
+.data-table.cols-3 td:nth-child(2) {
+  width: 25%;
+  text-align: center;
+}
+
+.data-table.cols-3 th:nth-child(3),
+.data-table.cols-3 td:nth-child(3) {
+  width: 25%;
+  text-align: center;
+}
+
+/* 4 Columns - 40% / 20% / 20% / 20% */
+.data-table.cols-4 th:nth-child(1),
+.data-table.cols-4 td:nth-child(1) {
+  width: 40%;
+  text-align: left;
+}
+
+.data-table.cols-4 th:nth-child(2),
+.data-table.cols-4 td:nth-child(2) {
+  width: 20%;
+  text-align: center;
+}
+
+.data-table.cols-4 th:nth-child(3),
+.data-table.cols-4 td:nth-child(3) {
+  width: 20%;
+  text-align: center;
+}
+
+.data-table.cols-4 th:nth-child(4),
+.data-table.cols-4 td:nth-child(4) {
+  width: 20%;
+  text-align: center;
+}
+
+/* 5 Columns - 30% / 20% / 20% / 15% / 15% */
+.data-table.cols-5 th:nth-child(1),
+.data-table.cols-5 td:nth-child(1) {
+  width: 30%;
+  text-align: left;
+}
+
+.data-table.cols-5 th:nth-child(2),
+.data-table.cols-5 td:nth-child(2) {
+  width: 20%;
+  text-align: center;
+}
+
+.data-table.cols-5 th:nth-child(3),
+.data-table.cols-5 td:nth-child(3) {
+  width: 20%;
+  text-align: center;
+}
+
+.data-table.cols-5 th:nth-child(4),
+.data-table.cols-5 td:nth-child(4) {
+  width: 15%;
+  text-align: center;
+}
+
+.data-table.cols-5 th:nth-child(5),
+.data-table.cols-5 td:nth-child(5) {
+  width: 15%;
+  text-align: center;
+}
+
+/* 6 Columns - 25% / 20% / 15% / 10% / 15% / 15% */
+.data-table.cols-6 th:nth-child(1),
+.data-table.cols-6 td:nth-child(1) {
+  width: 25%;
+  text-align: left;
+}
+
+.data-table.cols-6 th:nth-child(2),
+.data-table.cols-6 td:nth-child(2) {
+  width: 20%;
+  text-align: center;
+}
+
+.data-table.cols-6 th:nth-child(3),
+.data-table.cols-6 td:nth-child(3) {
+  width: 15%;
+  text-align: center;
+}
+
+.data-table.cols-6 th:nth-child(4),
+.data-table.cols-6 td:nth-child(4) {
+  width: 10%;
+  text-align: center;
+}
+
+.data-table.cols-6 th:nth-child(5),
+.data-table.cols-6 td:nth-child(5) {
+  width: 15%;
+  text-align: center;
+}
+
+.data-table.cols-6 th:nth-child(6),
+.data-table.cols-6 td:nth-child(6) {
+  width: 15%;
+  text-align: center;
+}
+
+/* 7+ Columns - Equal distribution */
+.data-table.cols-7 th,
+.data-table.cols-7 td,
+.data-table.cols-8 th,
+.data-table.cols-8 td,
+.data-table.cols-9 th,
+.data-table.cols-9 td,
+.data-table.cols-10 th,
+.data-table.cols-10 td {
+  width: auto;
+  min-width: 120px;
+  text-align: center;
+}
+
+.data-table.cols-7 th:first-child,
+.data-table.cols-7 td:first-child,
+.data-table.cols-8 th:first-child,
+.data-table.cols-8 td:first-child,
+.data-table.cols-9 th:first-child,
+.data-table.cols-9 td:first-child,
+.data-table.cols-10 th:first-child,
+.data-table.cols-10 td:first-child {
+  min-width: 150px;
+  text-align: center;
+}
+
+/* ----- RESPONSIVE TABLE STYLES ----- */
+/* Medium screens adjustments */
+@media (max-width: 992px) {
+  /* Ensure table scrolling on smaller screens */
+  .table, table, .data-table {
+    min-width: 800px;
+  }
+}
+
+/* Small screens adjustments */
+@media (max-width: 768px) {
+  /* Reduce table font size */
+  .table, table, .data-table {
+    font-size: 13px;
+  }
+  
+  /* Reduce cell padding */
+  th, td {
+    padding: 0.75rem 1rem;
+    height: 50px;
+  }
+}
+
+/* Extra small screens adjustments */
+@media (max-width: 576px) {
+  /* Full width table container with negative margin */
+  .table-container {
+    margin: 0 -1rem;
+    width: calc(100% + 2rem);
+    border-radius: 0;
+  }
+  
+  /* Smaller font for table on tiny screens */
+  .table, table, .data-table {
+    font-size: 12px;
+  }
+  
+  /* Reduce cell padding for compact view */
+  th, td {
+    padding: 0.75rem 0.5rem;
+    height: 45px;
+  }
+  
+  /* Smaller buttons on small screens */
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 12px;
+  }
+}

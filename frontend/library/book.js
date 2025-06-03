@@ -37,7 +37,7 @@ function showNotification(message, type = "info") {
 function getStatusClass(status) {
   const statusLower = status.toLowerCase();
   if (statusLower === 'available') return 'status-available';
-  if (statusLower === 'unavailable' || statusLower === 'borrowed' || statusLower === 'issued') return 'status-unavailable';
+  if (statusLower === 'unavailable' || statusLower === 'borrowed' || statusLower === 'issued' || statusLower === 'not available') return 'status-unavailable';
   if (statusLower === 'reserved') return 'status-reserved';
   return 'status-info';
 }
@@ -56,6 +56,33 @@ function formatDate(dateString) {
 function getFallbackImageUrl() {
   // Using a local fallback image instead of via.placeholder.com
   return 'assets/no-cover.png';
+}
+
+// Remove duplicate books based on book ID and keep the most recent/relevant entry
+function removeDuplicateBooks(books) {
+  const uniqueBooks = {};
+  
+  books.forEach(book => {
+    const bookId = book.id;
+    
+    // If we haven't seen this book ID before, add it
+    if (!uniqueBooks[bookId]) {
+      uniqueBooks[bookId] = book;
+    } else {
+      // If we have seen this book ID, keep the one with more complete information
+      // or the one that was updated more recently
+      const existingBook = uniqueBooks[bookId];
+      
+      // Prefer the book entry with more complete borrowing status information
+      if (book.borrowing_status && !existingBook.borrowing_status) {
+        uniqueBooks[bookId] = book;
+      } else if (book.updated_at > existingBook.updated_at) {
+        uniqueBooks[bookId] = book;
+      }
+    }
+  });
+  
+  return Object.values(uniqueBooks);
 }
 
 // Load all books from the server
@@ -89,8 +116,10 @@ async function loadAllBooks() {
     const data = await response.json();
     
     if (data.success) {
-      displayBooks(data.books);
-      console.log(`✅ Loaded ${data.books.length} books successfully`);
+      // Remove duplicate books before displaying
+      const uniqueBooks = removeDuplicateBooks(data.books);
+      displayBooks(uniqueBooks);
+      console.log(`✅ Loaded ${uniqueBooks.length} unique books successfully (${data.books.length} total records)`);
     } else {
       throw new Error(data.message || "Failed to load books");
     }
@@ -142,8 +171,10 @@ function displayBooks(books) {
 
 // Create a book card element
 function createBookCard(book) {
-  const isAvailable = book.status.toLowerCase() === 'available';
-  const statusClass = getStatusClass(book.status);
+  // Determine availability based on available_quantity
+  const isAvailable = book.available_quantity > 0;
+  const displayStatus = isAvailable ? 'Available' : 'Not Available';
+  const statusClass = getStatusClass(displayStatus);
   const fallbackImage = getFallbackImageUrl();
   
   // Create the book card container
@@ -158,15 +189,19 @@ function createBookCard(book) {
   card.dataset.category = categoryName;
   card.dataset.categoryId = categoryId;
   
-  // Set the HTML content with modernized UI elements
+  // Set the HTML content with modernized UI elements - Updated status indicator to show words only
   card.innerHTML = `
     <div class="book-cover">
       <img src="${book.cover_image || fallbackImage}" 
         alt="${book.title}" onerror="this.src='${fallbackImage}';" />
       <div class="book-status-indicator ${statusClass}">
-        <span class="status-dot"></span>
-        <span class="status-text">${book.status}</span>
+        <span class="status-text">${displayStatus}</span>
       </div>
+      ${book.available_quantity !== undefined ? `
+        <div class="quantity-indicator">
+          <span class="quantity-text">${book.available_quantity}/${book.quantity || book.available_quantity} available</span>
+        </div>
+      ` : ''}
     </div>
     <div class="book-info">
       <h3 class="book-title">${book.title}</h3>
@@ -269,7 +304,6 @@ function showBookDetails(book) {
   // Create modal container if it doesn't exist
   let modal = document.getElementById('book-details-modal');
   const fallbackImage = getFallbackImageUrl();
-  const largerFallbackImage = fallbackImage;
   
   if (!modal) {
     modal = document.createElement('div');
@@ -278,20 +312,14 @@ function showBookDetails(book) {
     document.body.appendChild(modal);
   }
   
-  // Create QR code display if book has one
-  let qrCodeHtml = '';
-  if (book.qr_code) {
-    qrCodeHtml = `
-      <div class="qr-code">
-        <img src="${book.qr_code}" alt="QR Code" />
-      </div>
-    `;
-  }
-  
   // Convert category if it's an object
   const categoryName = typeof book.category === 'object' ? book.category.name : book.category;
   
-  // Set modal content with modern styling
+  // Determine availability based on available_quantity
+  const isAvailable = book.available_quantity > 0;
+  const displayStatus = isAvailable ? 'Available' : 'Not Available';
+  
+  // Set modal content with simplified structure
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
@@ -301,33 +329,27 @@ function showBookDetails(book) {
       <div class="modal-body">
         <div class="book-details-grid">
           <div class="book-cover-large">
-            <img src="${book.cover_image || largerFallbackImage}" 
-              alt="${book.title}" onerror="this.src='${largerFallbackImage}';" />
+            <img src="${book.cover_image || fallbackImage}" 
+              alt="${book.title}" onerror="this.src='${fallbackImage}';" />
           </div>
           <div class="book-details-info">
             <p><strong>Author:</strong> ${book.author}</p>
             <p><strong>Category:</strong> ${categoryName}</p>
             <p><strong>ISBN:</strong> ${book.isbn || 'N/A'}</p>
-            <p>
-              <strong>Status:</strong> 
-              <span class="status-indicator ${getStatusClass(book.status)}">
-                <span class="status-dot"></span>
-                <span class="status-text">${book.status}</span>
-              </span>
-            </p>
-            <p><strong>Added:</strong> ${formatDate(book.created_at)}</p>
+            <p><strong>Status:</strong> ${displayStatus}</p>
+            ${book.quantity !== undefined ? `<p><strong>Total Quantity:</strong> ${book.quantity}</p>` : ''}
+            ${book.available_quantity !== undefined ? `<p><strong>Available Quantity:</strong> ${book.available_quantity}</p>` : ''}
             <div class="book-description">
               <h3>Description</h3>
               <p>${book.description || 'No description available.'}</p>
             </div>
-            ${qrCodeHtml}
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="modal-btn cancel-btn" id="close-details-btn">Close</button>
-        <button class="modal-btn confirm-btn ${book.status.toLowerCase() !== 'available' ? 'disabled' : ''}" 
-          id="borrow-from-modal-btn" ${book.status.toLowerCase() !== 'available' ? 'disabled' : ''}>
+        <button class="modal-btn confirm-btn ${!isAvailable ? 'disabled' : ''}" 
+          id="borrow-from-modal-btn" ${!isAvailable ? 'disabled' : ''}>
           Borrow Book
         </button>
       </div>
@@ -427,8 +449,10 @@ async function loadBooksWithFilter(filters = {}) {
     const data = await response.json();
     
     if (data.success) {
-      displayBooks(data.books);
-      console.log(`✅ Loaded ${data.books.length} books with filters`);
+      // Remove duplicate books before displaying
+      const uniqueBooks = removeDuplicateBooks(data.books);
+      displayBooks(uniqueBooks);
+      console.log(`✅ Loaded ${uniqueBooks.length} unique books with filters (${data.books.length} total records)`);
     } else {
       throw new Error(data.message || "Failed to load books");
     }
